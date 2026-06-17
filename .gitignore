@@ -1,0 +1,15 @@
+# Ignore the virtual environment directory
+Rl_Summative/
+
+# Ignore Python bytecode files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore system-specific files
+.DS_Store  # macOS
+Thumbs.db  # Windows
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
