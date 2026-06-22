@@ -13,3 +13,18 @@ Thumbs.db  # Windows
 # Ignore IDE-specific files
 .vscode/
 .idea/
+.ipynb_checkpoints/
+
+# Scratch / exploratory notebooks (not version-controlled)
+Notebooks/scratch/
+
+# Experiment tracking and training artifacts
+wandb/
+*.tfevents.*
+*_tensorboard/
+*.zip
+*.npz
+
+# Generated figure exports (PNGs are tracked; vector/PDF exports are not)
+figures/*.svg
+figures/*.pdf
