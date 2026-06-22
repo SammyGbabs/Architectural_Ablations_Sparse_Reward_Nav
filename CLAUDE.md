@@ -68,9 +68,11 @@ figures/
 results/
   csv/                  # per-seed raw numbers, one CSV per experiment
 docs/
-  rework_proposal.pdf   # the plan
-  results_log.md        # append-only structured results log (paper writes itself from this)
-  Final_Report.pdf      # the rejected paper (frozen reference)
+  rework_proposal.docx             # the active plan (editable source)
+  rework_proposal.pdf              # the plan (PDF export of rework_proposal.docx)
+  results_log.md                   # append-only structured results log (paper writes itself from this)
+  rejected_submission_DLI2026.pdf  # the rejected Deep Learning Indaba 2026 paper (frozen reference)
+  Final_Report.pdf                 # the pre-paper original report, written before the DLI submission (frozen reference)
 main.py                 # rollout/visualisation entry point
 requirements.txt
 CLAUDE.md               # this file

@@ -1,0 +1,19 @@
+# Core RL stack
+gymnasium>=1.0,<2.0
+stable-baselines3>=2.0,<3.0
+minigrid>=2.3,<3.0
+
+# Numerics & plotting
+numpy>=1.26,<2.0
+matplotlib>=3.8,<4.0
+seaborn>=0.13,<1.0
+
+# Statistical evaluation
+rliable>=1.0,<2.0
+
+# Experiment tracking
+wandb>=0.16,<1.0
+
+# Config & testing
+pyyaml>=6.0,<7.0
+pytest>=8.0,<9.0
