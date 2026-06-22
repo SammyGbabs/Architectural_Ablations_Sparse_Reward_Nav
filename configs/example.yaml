@@ -3,24 +3,34 @@
 # =============================================================================
 # Copy this file to configs/{phase}_{algo}_{descriptor}.yaml and uncomment the
 # fields you need. Every hyperparameter for a run lives in a file like this —
-# never hardcode them in scripts (see CLAUDE.md § Conventions).
+# never hardcode them in scripts (see CLAUDE.md § Conventions). For concrete,
+# filled-in examples see configs/dqn_exp5.yaml and configs/ppo_exp4.yaml.
 #
 # Naming: a config is identified by `config_id` and consumed alongside a
-# per-invocation --seed. Run names follow {algo}_{config_id}_seed{N}.
+# per-invocation --seed. Run names follow {algo}_{config_id}_seed{N}, produced
+# by Training/seeds.py (the source of truth for run identity).
 # All fields below are commented out so this template is never loadable as-is.
+# Fields not set in a config fall back to the Stable-Baselines3 default.
 # -----------------------------------------------------------------------------
 
-# config_id: p1_ppo_exp1          # unique id; used in run names and CSV paths
-
-# --- Algorithm ---------------------------------------------------------------
+# config_id: p1_ppo_exp4          # unique id; matches the filename and run names
 # algo: ppo                       # one of: ppo | dqn | a2c | double_dqn | dueling_dqn
+# policy: MlpPolicy               # flat 16-d Box obs => always MlpPolicy
 
 # --- Network architecture ----------------------------------------------------
-# Actor (pi) vs critic (vf) hidden layers. The inverted-asymmetry hypothesis
-# (H1) lives here: actor capacity > critic capacity at fixed total budget.
-# net_arch:
-#   pi: [512, 256, 128]           # policy/actor hidden layers
-#   vf: [256, 128]                # value/critic hidden layers
+# Shape is algo-dependent, mirroring the SB3 API:
+#   * Actor-critic (ppo / a2c): a dict with separate pi (actor) and vf (critic)
+#     hidden layers. The inverted-asymmetry hypothesis (H1) lives here:
+#     actor capacity > critic capacity at fixed total budget.
+#   * Value-based (dqn / double_dqn / dueling_dqn): a single flat list (the
+#     Q-network has no actor/critic split).
+# net_arch:                       # actor-critic form
+#   pi: [512, 256, 128]
+#   vf: [256, 128]
+# net_arch: [512, 256]            # value-based form (use ONE of the two)
+# activation_fn: LeakyReLU        # name -> torch.nn class in the training script
+#                                 # (e.g. ReLU, LeakyReLU, Tanh). Omit for SB3 default.
+# ortho_init: true                # orthogonal init (PPO/A2C policies)
 
 # --- Shared optimisation -----------------------------------------------------
 # lr: 0.0003                      # learning rate
@@ -31,6 +41,9 @@
 # n_seeds: 10                     # 10 main / 5 exploratory / 3 sanity (CLAUDE.md)
 # env_steps: 200000               # total environment steps per run (NOT episodes)
 
+# --- Evaluation --------------------------------------------------------------
+# eval_freq: 20000                # EvalCallback evaluation frequency (env steps)
+
 # --- PPO-specific (only when algo: ppo) --------------------------------------
 # n_steps: 1024                   # rollout length per update
 # n_epochs: 7                     # optimisation epochs per rollout
@@ -40,6 +53,9 @@
 
 # --- DQN-specific (only when algo: dqn / double_dqn / dueling_dqn) ------------
 # buffer_size: 100000             # replay buffer capacity
+# target_update_interval: 1000    # steps between target-network syncs
+# train_freq: 4                   # env steps between gradient updates
+# gradient_steps: 1               # gradient steps per update
 # exploration_fraction: 0.15      # fraction of training over which eps decays
 # exploration_initial_eps: 1.0    # starting epsilon
 # exploration_final_eps: 0.02     # final epsilon
