@@ -1,0 +1,45 @@
+# =============================================================================
+# configs/example.yaml — TEMPLATE ONLY (not a working config)
+# =============================================================================
+# Copy this file to configs/{phase}_{algo}_{descriptor}.yaml and uncomment the
+# fields you need. Every hyperparameter for a run lives in a file like this —
+# never hardcode them in scripts (see CLAUDE.md § Conventions).
+#
+# Naming: a config is identified by `config_id` and consumed alongside a
+# per-invocation --seed. Run names follow {algo}_{config_id}_seed{N}.
+# All fields below are commented out so this template is never loadable as-is.
+# -----------------------------------------------------------------------------
+
+# config_id: p1_ppo_exp1          # unique id; used in run names and CSV paths
+
+# --- Algorithm ---------------------------------------------------------------
+# algo: ppo                       # one of: ppo | dqn | a2c | double_dqn | dueling_dqn
+
+# --- Network architecture ----------------------------------------------------
+# Actor (pi) vs critic (vf) hidden layers. The inverted-asymmetry hypothesis
+# (H1) lives here: actor capacity > critic capacity at fixed total budget.
+# net_arch:
+#   pi: [512, 256, 128]           # policy/actor hidden layers
+#   vf: [256, 128]                # value/critic hidden layers
+
+# --- Shared optimisation -----------------------------------------------------
+# lr: 0.0003                      # learning rate
+# gamma: 0.995                    # discount factor
+# batch_size: 256                 # minibatch size
+
+# --- Experiment scale --------------------------------------------------------
+# n_seeds: 10                     # 10 main / 5 exploratory / 3 sanity (CLAUDE.md)
+# env_steps: 200000               # total environment steps per run (NOT episodes)
+
+# --- PPO-specific (only when algo: ppo) --------------------------------------
+# n_steps: 1024                   # rollout length per update
+# n_epochs: 7                     # optimisation epochs per rollout
+# gae_lambda: 0.92                # GAE lambda
+# clip_range: 0.2                 # PPO clip range
+# ent_coef: 0.01                  # entropy bonus coefficient
+
+# --- DQN-specific (only when algo: dqn / double_dqn / dueling_dqn) ------------
+# buffer_size: 100000             # replay buffer capacity
+# exploration_fraction: 0.15      # fraction of training over which eps decays
+# exploration_initial_eps: 1.0    # starting epsilon
+# exploration_final_eps: 0.02     # final epsilon
