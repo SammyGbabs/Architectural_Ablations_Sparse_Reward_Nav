@@ -1,0 +1,38 @@
+# =============================================================================
+# configs/dqn_exp5.yaml
+# Phase 1 — DQN Exp 5 (original Table 1, the [512, 256] DQN configuration).
+#
+# VERBATIM port of Training/dqn_training.py. These values reproduce the rejected
+# paper's DQN run; do NOT tune them — Phase 1 is replication, not improvement.
+# Any field not listed here was left at its Stable-Baselines3 default in the
+# legacy script (e.g. learning_starts, tau, max_grad_norm) and must stay default.
+# =============================================================================
+
+config_id: dqn_exp5
+algo: dqn
+policy: MlpPolicy          # flat 16-d Box obs -> MlpPolicy (CLAUDE.md)
+
+# Q-network: DQN has no actor/critic split, so net_arch is a single flat list.
+net_arch: [512, 256]
+# activation_fn left unset in the legacy script => SB3 default (ReLU).
+
+# --- Shared optimisation (legacy values) ---
+lr: 0.0003
+gamma: 0.99
+batch_size: 256
+
+# --- Experiment scale ---
+n_seeds: 10               # Phase 1 main results (NEW: multi-seed; legacy was 1 seed)
+env_steps: 200000         # legacy total_timesteps (matches proposal Phase 1)
+
+# --- DQN-specific (legacy values) ---
+buffer_size: 100000
+target_update_interval: 1000
+train_freq: 4
+gradient_steps: 1
+exploration_fraction: 0.15
+exploration_initial_eps: 1.0
+exploration_final_eps: 0.02
+
+# --- Evaluation ---
+eval_freq: 10000          # legacy EvalCallback eval_freq

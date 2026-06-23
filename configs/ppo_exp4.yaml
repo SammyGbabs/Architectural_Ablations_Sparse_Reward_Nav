@@ -1,0 +1,45 @@
+# =============================================================================
+# configs/ppo_exp4.yaml
+# Phase 1 — PPO Exp 4 (original Table 2, the INVERTED-ASYMMETRY configuration:
+# actor pi=[512,256,128] deeper than critic vf=[256,128]). This is the headline
+# H1 config — the one Phase 1 must replicate under multi-seed statistics.
+#
+# VERBATIM port of Training/pg_training.py. Do NOT tune — replication.
+# Any field not listed was left at its Stable-Baselines3 default in the legacy
+# script and must stay default.
+# =============================================================================
+
+config_id: ppo_exp4
+algo: ppo
+policy: MlpPolicy          # flat 16-d Box obs -> MlpPolicy (CLAUDE.md)
+
+# Actor (pi) deeper than critic (vf): the inverted-asymmetry architecture.
+net_arch:
+  pi: [512, 256, 128]
+  vf: [256, 128]
+activation_fn: LeakyReLU   # legacy: nn.LeakyReLU (training script maps name -> class)
+ortho_init: true           # legacy: ortho_init=True
+
+# --- Shared optimisation (legacy values) ---
+lr: 0.0003
+gamma: 0.995
+batch_size: 256
+
+# --- Experiment scale ---
+n_seeds: 10                # Phase 1 main results (NEW: multi-seed; legacy was 1 seed)
+# env_steps: smoke-test value. NOT the legacy 500k and NOT a blind 200k default.
+# Decision policy: run the single-seed smoke test at 200k, inspect the PPO (and
+# DQN) learning curves, and confirm convergence before 200k. The final per-algo
+# budget is locked from that convergence evidence and reported transparently;
+# if an algo is still improving at 200k, raise its budget. (See PR discussion.)
+env_steps: 200000          # smoke-test budget; finalised from convergence evidence
+
+# --- PPO-specific (legacy values) ---
+n_steps: 1024
+n_epochs: 7
+gae_lambda: 0.92
+clip_range: 0.2
+ent_coef: 0.01
+
+# --- Evaluation ---
+eval_freq: 20000           # legacy EvalCallback eval_freq
