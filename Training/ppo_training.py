@@ -25,7 +25,9 @@ full RL stack is not installed. The pure helpers below are import-safe and unit
 from __future__ import annotations
 
 import argparse
+import os
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -141,6 +143,55 @@ def resolve_activation(name: str | None):
     return table[name]
 
 
+def resolve_wandb_run_id(run_name: str, fresh: bool) -> str:
+    """
+    The W&B run id. Deterministic (== run_name) by default so a re-run resumes
+    the same run; with ``fresh`` a timestamp suffix makes a brand-new run id.
+    """
+    if not fresh:
+        return run_name
+    return f"{run_name}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+
+def plan_wandb(
+    run_name: str,
+    group: str,
+    config: dict[str, Any],
+    mode: str,
+    fresh: bool,
+) -> dict[str, Any]:
+    """
+    Decide all W&B behaviour *without importing wandb*, so the decision logic is
+    import-safe and unit-testable (and ``disabled`` never touches wandb at all).
+
+    Returns a plan dict:
+      - ``enabled``: False only for mode ``disabled`` (caller skips wandb.init).
+      - ``env``: os.environ overrides to apply *before* wandb.init. For ``offline``
+        this forces ``WANDB_MODE=offline`` so wandb can never reach the server,
+        belt-and-suspenders with the ``mode`` kwarg below.
+      - ``init_kwargs``: kwargs for ``wandb.init`` (None when disabled). Always
+        carries ``resume="allow"`` alongside the deterministic ``id`` so a re-run
+        of a seed resumes its existing run instead of erroring "run ID in use".
+      - ``run_id``: the resolved id (None when disabled).
+    """
+    if mode == "disabled":
+        return {"enabled": False, "env": {}, "init_kwargs": None, "run_id": None}
+
+    env = {"WANDB_MODE": "offline"} if mode == "offline" else {}
+    run_id = resolve_wandb_run_id(run_name, fresh)
+    init_kwargs = {
+        "project": WANDB_PROJECT,
+        "name": run_name,
+        "id": run_id,
+        "resume": "allow",            # re-run resumes the same run, never errors
+        "group": group,
+        "config": config,
+        "sync_tensorboard": True,     # SB3 tensorboard scalars flow into W&B
+        "mode": mode,                 # "online" or "offline"
+    }
+    return {"enabled": True, "env": env, "init_kwargs": init_kwargs, "run_id": run_id}
+
+
 def build_policy_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
     """Assemble SB3 ``policy_kwargs`` from the config (resolves activation)."""
     policy_kwargs: dict[str, Any] = {
@@ -216,19 +267,29 @@ def train(args: argparse.Namespace) -> None:
     print(f"[ppo] total_steps = {total_steps:,}  (config env_steps={cfg['env_steps']:,})")
 
     # ---- Weights & Biases -------------------------------------------------
-    import wandb
-    from wandb.integration.sb3 import WandbCallback
-
-    wandb_run = wandb.init(
-        project=WANDB_PROJECT,
-        name=run_name,
-        id=run_name,                 # stable id so a resumed run continues the same W&B run
-        resume="allow",
+    # Decide everything up front without importing wandb; 'disabled' skips it
+    # entirely (works with wandb uninstalled); 'offline' forces WANDB_MODE so no
+    # server is ever contacted.
+    plan = plan_wandb(
+        run_name=run_name,
         group=cfg["config_id"],
         config={**cfg, "seed": spec.seed, "total_steps": total_steps},
-        sync_tensorboard=True,       # SB3 tensorboard scalars flow into W&B
         mode=args.wandb_mode,
+        fresh=args.fresh,
     )
+    wandb_run = None
+    wandb_callback = None
+    if plan["enabled"]:
+        for key, value in plan["env"].items():
+            os.environ[key] = value          # must be set BEFORE importing/initing wandb
+        import wandb
+        from wandb.integration.sb3 import WandbCallback
+
+        wandb_run = wandb.init(**plan["init_kwargs"])
+        wandb_callback = WandbCallback(verbose=1)
+        print(f"[ppo] wandb: mode={args.wandb_mode} id={plan['run_id']} resume=allow")
+    else:
+        print("[ppo] wandb disabled (--wandb-mode disabled): skipping wandb.init")
 
     # ---- Env --------------------------------------------------------------
     env = make_env(spec.seed)
@@ -236,7 +297,11 @@ def train(args: argparse.Namespace) -> None:
     # ---- Model: resume from latest checkpoint, or build fresh -------------
     from stable_baselines3 import PPO
 
-    latest = None if args.no_resume else find_latest_checkpoint(ckpt_dir, run_name)
+    # --fresh implies a clean run: don't resume old checkpoints either.
+    resume_checkpoints = not (args.no_resume or args.fresh)
+    if args.fresh:
+        print("[ppo] --fresh: new wandb id and ignoring existing checkpoints")
+    latest = find_latest_checkpoint(ckpt_dir, run_name) if resume_checkpoints else None
     if latest is not None:
         print(f"[ppo] resuming from checkpoint: {latest.name}")
         model = PPO.load(latest, env=env, tensorboard_log=str(tb_dir))
@@ -250,7 +315,8 @@ def train(args: argparse.Namespace) -> None:
         print(f"[ppo] already at {model.num_timesteps:,} >= {total_steps:,} steps; "
               "saving final and exiting.")
         model.save(ckpt_dir / f"{run_name}_final")
-        wandb_run.finish()
+        if wandb_run is not None:
+            wandb_run.finish()
         return
 
     # ---- Callbacks --------------------------------------------------------
@@ -262,7 +328,9 @@ def train(args: argparse.Namespace) -> None:
         name_prefix=run_name,
         save_replay_buffer=False,                  # PPO is on-policy: no buffer
     )
-    callbacks = [checkpoint_cb, WandbCallback(verbose=1)]
+    callbacks = [checkpoint_cb]
+    if wandb_callback is not None:
+        callbacks.append(wandb_callback)
 
     # Optional deterministic evaluation (no early-stopping: Phase 1 compares at a
     # FIXED step budget, so we never let an eval callback cut training short).
@@ -292,7 +360,8 @@ def train(args: argparse.Namespace) -> None:
     final_path = ckpt_dir / f"{run_name}_final"
     model.save(final_path)
     print(f"[ppo] saved final model -> {final_path}.zip")
-    wandb_run.finish()
+    if wandb_run is not None:
+        wandb_run.finish()
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +382,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
                         choices=["online", "offline", "disabled"],
                         help="W&B mode. Use 'offline'/'disabled' for local smoke tests.")
     parser.add_argument("--no-resume", action="store_true",
-                        help="Ignore existing checkpoints and start a fresh run.")
+                        help="Ignore existing checkpoints and start training from scratch.")
+    parser.add_argument("--fresh", action="store_true",
+                        help="Clean run: append a timestamp to the W&B id (new run, "
+                             "never resumes the existing one) and ignore checkpoints.")
     parser.add_argument("--total-steps", type=int, default=None,
                         help="Override env_steps for a quick smoke test (debug only).")
     return parser

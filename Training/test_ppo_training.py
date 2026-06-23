@@ -22,7 +22,9 @@ from Training.ppo_training import (
     find_latest_checkpoint,
     load_config,
     parse_checkpoint_steps,
+    plan_wandb,
     resolve_activation,
+    resolve_wandb_run_id,
     validate_ppo_config,
 )
 
@@ -140,3 +142,56 @@ def test_find_latest_checkpoint(tmp_path):
 def test_find_latest_checkpoint_none(tmp_path):
     assert find_latest_checkpoint(tmp_path, "ppo_ppo_exp4_seed0") is None
     assert find_latest_checkpoint(tmp_path / "nope", "ppo_ppo_exp4_seed0") is None
+
+
+# ---------------------------------------------------------------------------
+# W&B planning (import-safe; wandb is NOT installed in this env, which is the
+# point — these prove the decision logic never needs wandb imported)
+# ---------------------------------------------------------------------------
+
+RUN = "ppo_ppo_exp4_seed0"
+CFG = {"a": 1}
+
+
+def test_disabled_skips_wandb_entirely():
+    # mode 'disabled' must work with wandb uninstalled: no init_kwargs, no import.
+    plan = plan_wandb(RUN, "ppo_exp4", CFG, mode="disabled", fresh=False)
+    assert plan["enabled"] is False
+    assert plan["init_kwargs"] is None
+    assert plan["env"] == {}
+    assert plan["run_id"] is None
+
+
+def test_offline_forces_mode_and_env_never_server():
+    plan = plan_wandb(RUN, "ppo_exp4", CFG, mode="offline", fresh=False)
+    assert plan["enabled"] is True
+    # belt-and-suspenders: env var AND mode kwarg both force offline
+    assert plan["env"] == {"WANDB_MODE": "offline"}
+    assert plan["init_kwargs"]["mode"] == "offline"
+
+
+def test_online_no_env_override():
+    plan = plan_wandb(RUN, "ppo_exp4", CFG, mode="online", fresh=False)
+    assert plan["env"] == {}
+    assert plan["init_kwargs"]["mode"] == "online"
+
+
+def test_resume_allow_always_set_with_deterministic_id():
+    for mode in ("online", "offline"):
+        plan = plan_wandb(RUN, "ppo_exp4", CFG, mode=mode, fresh=False)
+        assert plan["init_kwargs"]["resume"] == "allow"
+        assert plan["init_kwargs"]["id"] == RUN          # deterministic == run_name
+        assert plan["init_kwargs"]["sync_tensorboard"] is True
+        assert plan["init_kwargs"]["project"] == "arch-ablations-sparse-reward"
+
+
+def test_fresh_suffixes_run_id():
+    assert resolve_wandb_run_id(RUN, fresh=False) == RUN
+    fresh_id = resolve_wandb_run_id(RUN, fresh=True)
+    assert fresh_id != RUN
+    assert fresh_id.startswith(RUN + "_")
+    # still resume=allow, but against the NEW unique id (so it's effectively fresh)
+    plan = plan_wandb(RUN, "ppo_exp4", CFG, mode="online", fresh=True)
+    assert plan["run_id"].startswith(RUN + "_")
+    assert plan["init_kwargs"]["id"] == plan["run_id"]
+    assert plan["init_kwargs"]["resume"] == "allow"
