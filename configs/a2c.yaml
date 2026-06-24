@@ -1,0 +1,41 @@
+# =============================================================================
+# configs/a2c.yaml
+# Phase 1 baseline — A2C, a "standard alternative" baseline (NOT a controlled
+# ablation of PPO).
+#
+# Architecture is matched to the SYMMETRIC PPO Exp 1 (pi=vf=[256,256]) so the
+# baseline does not confound the asymmetry comparison H1 is testing — A2C is not
+# handed the inverted-asymmetry capacity split. But A2C is otherwise configured
+# as a competent standard A2C, using its OWN design-appropriate rollout length
+# (SB3 A2C default n_steps = 5) rather than PPO's 2048.
+#
+# Consequence (documented in results_log.md / CLAUDE.md): PPO-vs-A2C differs in
+# BOTH algorithm AND rollout length, so it is a "standard alternative" baseline,
+# not a single-variable ablation. Reported at the 5-seed EXPLORATORY tier.
+#
+# NEW baseline (proposal §6.1) — NO original to port.
+# =============================================================================
+
+config_id: a2c
+algo: a2c
+policy: MlpPolicy
+matched_to: ppo_exp1       # architecture only (symmetric); see header for caveat
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: ReLU
+ortho_init: true
+
+lr: 0.0002                 # mirrors PPO Exp 1 (SB3 A2C default is 7e-4)
+gamma: 0.990
+
+n_seeds: 5                 # EXPLORATORY tier (baseline, not a main H1 result)
+env_steps: 200000
+
+# A2C-specific (no n_epochs / clip_range / batch_size in A2C):
+n_steps: 5                 # SB3 A2C documented default (A2C's native short rollout)
+gae_lambda: 0.95
+ent_coef: 0.020
+
+eval_freq: 20000

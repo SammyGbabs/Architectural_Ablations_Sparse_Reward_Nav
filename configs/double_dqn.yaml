@@ -1,0 +1,36 @@
+# =============================================================================
+# configs/double_dqn.yaml
+# Phase 1 baseline — Double DQN, MATCHED to DQN Exp 5.
+#
+# Exp 5 is the best DQN config (Table 3: 100% SR, 0% CR, 28.6 steps), so matching
+# Double DQN to it is a fair head-to-head: only the algorithm differs (decoupled
+# action selection / evaluation in the TD target), not the capacity or rig.
+#
+# NEW baseline (proposal §6.1) — there is NO original to port; every value here
+# is inherited from configs/dqn_exp5.yaml. Do NOT diverge from Exp 5's settings.
+# =============================================================================
+
+config_id: double_dqn
+algo: double_dqn
+policy: MlpPolicy
+matched_to: dqn_exp5       # provenance: architecture + hyperparameters from Exp 5
+
+net_arch: [512, 256]
+
+lr: 0.0003
+gamma: 0.990
+batch_size: 256
+
+n_seeds: 5                 # EXPLORATORY tier (baseline, not a main H1 result)
+env_steps: 200000
+
+buffer_size: 100000
+exploration_fraction: 0.15
+exploration_initial_eps: 1.0
+exploration_final_eps: 0.02
+
+target_update_interval: 1000
+train_freq: 4
+gradient_steps: 1
+
+eval_freq: 10000

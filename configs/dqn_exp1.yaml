@@ -1,0 +1,36 @@
+# =============================================================================
+# configs/dqn_exp1.yaml
+# Phase 1 — DQN Exp 1 (smallest net [256,256], slowest eps decay).
+#
+# Source: paper Table 1 ONLY. The Training/ scripts and notebook contain just one
+# DQN config (Exp 5 / Exp 2); DQN Exp 1, 3, 4 exist only as rows in Table 1 and
+# cannot be cross-checked against code. The shared rig values not in Table 1
+# (target_update_interval, train_freq, gradient_steps, eval_freq) are taken from
+# the legacy dqn_training.py and held constant across all DQN experiments.
+# activation_fn is unset -> SB3 default (ReLU). Do NOT tune.
+# =============================================================================
+
+config_id: dqn_exp1
+algo: dqn
+policy: MlpPolicy
+
+net_arch: [256, 256]       # DQN: single flat Q-net list
+
+lr: 0.0003                 # 3e-4
+gamma: 0.990
+batch_size: 128
+
+n_seeds: 10
+env_steps: 200000          # check DQN convergence at 200k; raise per-algo if still improving
+
+buffer_size: 50000
+exploration_fraction: 0.20
+exploration_initial_eps: 1.0
+exploration_final_eps: 0.05
+
+# Shared rig (legacy dqn_training.py; not varied in Table 1):
+target_update_interval: 1000
+train_freq: 4
+gradient_steps: 1
+
+eval_freq: 10000

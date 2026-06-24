@@ -1,0 +1,33 @@
+# =============================================================================
+# configs/dqn_exp3.yaml
+# Phase 1 — DQN Exp 3 ([512,256], aggressive eps decay to 0.01, high lr 5e-4,
+# large buffer 150k, large batch 512). Table 3 reports this config collapsed
+# (10% SR) from exploiting too early — kept for faithful replication.
+#
+# Source: paper Table 1 ONLY (not in code). Shared rig from legacy
+# dqn_training.py. activation_fn unset -> SB3 default (ReLU). Do NOT tune.
+# =============================================================================
+
+config_id: dqn_exp3
+algo: dqn
+policy: MlpPolicy
+
+net_arch: [512, 256]
+
+lr: 0.0005                 # 5e-4
+gamma: 0.990
+batch_size: 512
+
+n_seeds: 10
+env_steps: 200000
+
+buffer_size: 150000
+exploration_fraction: 0.10
+exploration_initial_eps: 1.0
+exploration_final_eps: 0.01
+
+target_update_interval: 1000
+train_freq: 4
+gradient_steps: 1
+
+eval_freq: 10000

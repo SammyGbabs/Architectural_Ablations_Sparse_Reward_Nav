@@ -1,0 +1,37 @@
+# =============================================================================
+# configs/dueling_dqn.yaml
+# Phase 1 baseline — Dueling DQN, MATCHED to DQN Exp 5.
+#
+# Same rationale as double_dqn.yaml: Exp 5 is the best DQN config, so matching
+# the shared [512,256] trunk + hyperparameters isolates the dueling head
+# (separate value/advantage streams) as the only difference.
+#
+# NEW baseline (proposal §6.1) — NO original to port; values inherited from
+# configs/dqn_exp5.yaml. The dueling value/advantage split lives in the network
+# definition (Training/baselines/dueling_dqn.py), not in this config. Do NOT tune.
+# =============================================================================
+
+config_id: dueling_dqn
+algo: dueling_dqn
+policy: MlpPolicy
+matched_to: dqn_exp5
+
+net_arch: [512, 256]
+
+lr: 0.0003
+gamma: 0.990
+batch_size: 256
+
+n_seeds: 5                 # EXPLORATORY tier (baseline, not a main H1 result)
+env_steps: 200000
+
+buffer_size: 100000
+exploration_fraction: 0.15
+exploration_initial_eps: 1.0
+exploration_final_eps: 0.02
+
+target_update_interval: 1000
+train_freq: 4
+gradient_steps: 1
+
+eval_freq: 10000

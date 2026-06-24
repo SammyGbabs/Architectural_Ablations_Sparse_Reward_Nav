@@ -49,6 +49,10 @@
 
 **Hypothesis under test:** H1.
 
+**Config set & seed tiers.** Configs are verbatim ports of the paper's Table 1 (DQN Exp 1–5) and Table 2 (PPO Exp 1–4), in `configs/{dqn,ppo}_exp{N}.yaml`. Provenance note: DQN Exp 1/3/4 and PPO Exp 2 exist **only in the paper tables** (no committed code), and were transcribed from the tables; DQN Exp 2/5 and PPO Exp 1/3/4 additionally match the original notebook exactly. The 9 table configs run at **10 seeds (MAIN)**; the 3 baselines (Double DQN, Dueling DQN, A2C) at **5 seeds (EXPLORATORY)** → **90 + 15 = 105 runs total**. Promotion rule: if a baseline's 5-seed IQM lands close enough to PPO Exp 1/Exp 4 to affect the conclusion, promote that baseline to 10 seeds.
+
+**Baseline caveats.** Double DQN and Dueling DQN are matched to DQN Exp 5 (the best DQN config) — a clean algorithm-only comparison. **A2C is a "standard alternative" baseline, not a controlled ablation:** its architecture is matched to the symmetric PPO Exp 1 (so it doesn't confound the asymmetry comparison) but it uses A2C's design-appropriate rollout (`n_steps=5`, SB3 default), so PPO-vs-A2C differs in **both algorithm and rollout length**. Report and read it accordingly.
+
 **Status:** *(update as runs land)*
 
 ### [P1][exp-id] (example — DELETE once first real entry lands)
