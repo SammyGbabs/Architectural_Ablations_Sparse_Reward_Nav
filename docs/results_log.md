@@ -118,7 +118,22 @@
 
 This section captures results from runs that were intentionally undersized (3 seeds, short horizons) to verify the pipeline works. **Do not cite these in the paper.** They live here so we don't forget what was tested, but they're not real evidence.
 
-*(Entries land here as smoke tests pass.)*
+### [SANITY] Hub-spawn collapsed the task; spawn moved to living-room corner
+- **Date:** 2026-06-24
+- **Owner:** Samuel
+- **Trigger:** First reworked-env PPO Exp 4 (inverted) smoke run plateaued at eval reward ~29.4 with episode length ~3 steps, vs the rejected paper's ~41 / 14.3–28.6 steps. Investigated whether 29.4 was the env ceiling or a reward-scale bug.
+
+**Horizon analysis.** The reworked env spawned the agent at the hallway centre `(10,10)` (`AGENT_START`), which is only 2–4 steps from every room. Uniform over the 4 target rooms, mean optimal episode length = (2+3+3+4)/4 = **3.0 steps** — exactly what was observed. The success reward simplifies to a closed form `R(L) = 30 − 0.2·L` for a doorway-free success (step penalty −0.1·L plus target bonus 15 + 0.1·(150−L), TARGET_K=0.1, no doorway collectable in 3 steps from the hub). So `R(3) = 29.4`, the observed value — the agent had **converged correctly to the env's near-optimal ceiling**, not regressed.
+
+**Why not ~41.** The ~41 was an old-env artifact, not comparable: the frozen original (`Ignore/custom_env.py`) used a time-bonus coefficient of **0.2** (vs reworked 0.1) and overwrote the terminal step penalty, giving a ceiling ~44–45. Halving the coefficient (a deliberate reworked-env spec choice) drops the ceiling ~44→~30. **Raw return is therefore not comparable across the two envs** — use scale-invariant metrics (success rate, path-optimality ratio vs A*) for any old-vs-new comparison.
+
+**The real problem.** With a fixed, trivially-reachable ceiling, the task could not distinguish architectures: symmetric (Exp 1, pi=[256,256]/vf=[256,256]) and inverted (Exp 4, pi=[512,256,128]/vf=[256,128]) are both predicted to plateau at ~29.4 / ~3 steps, making the H1 IQM comparison noise. Phase 1 on the hub-spawn env could not test H1.
+
+**Fix (signed-off contract change).** `AGENT_START` moved `(10,10)` → `(0,0)` (living-room corner), and `reset()` now samples the target from the rooms **other than the spawn room** (`{kitchen, bedroom, bathroom}`). `(1,1)` — the original env's spawn — is a Sofa obstacle in the reworked map, so `(0,0)` (true corner, verified free) is used; excluding the spawn room avoids the degenerate "already in the target room" episode. BFS over the reworked map confirms the restored horizon: shortest paths from `(0,0)` are kitchen 11, bedroom 11, bathroom 22 steps → **mean optimal ≈ 14.7 steps (11–22)**, back in the paper's 14–55 regime. Documented in `CLAUDE.md` § Decisions already made.
+
+**Caveats / status.** The symmetric-vs-inverted plateau numbers above are **predictions, not measured** — the training stack (Gymnasium/SB3/wandb) is not installed in the analysis environment. Re-run both Exp 4 (inverted) and Exp 1 (symmetric) single-seed smoke tests on Colab with the corrected spawn and confirm (a) episode lengths jump to ~11–22 and (b) whether the architectures now separate. Configs: `configs/ppo_exp4.yaml`, `configs/ppo_exp1.yaml`. This is a sanity check, not paper evidence.
+
+*(Further entries land here as smoke tests pass.)*
 
 ---
 

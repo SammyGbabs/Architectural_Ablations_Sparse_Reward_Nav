@@ -185,15 +185,20 @@ class ResidentialGridEnv(gym.Env):
         options: Optional[dict[str, Any]] = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
         """
-        Start a new episode. The target room is sampled uniformly from
-        {living, kitchen, bedroom, bathroom} each reset.
+        Start a new episode. The target room is sampled uniformly from the
+        rooms OTHER than the spawn room, so every episode is a genuine
+        cross-house traversal. With the living-room-corner spawn this excludes
+        the living room (sampling over {kitchen, bedroom, bathroom}); were the
+        agent to start in the target room the episode would be trivially solved.
         """
         super().reset(seed=seed)
         self._agent_pos = AGENT_START
         self._steps = 0
         self._visited_doorways = set()
-        self._target_room = int(TARGET_ROOMS[
-            int(self.np_random.integers(0, len(TARGET_ROOMS)))
+        spawn_room = int(self._room_grid[AGENT_START])
+        candidate_targets = [r for r in TARGET_ROOMS if r != spawn_room]
+        self._target_room = int(candidate_targets[
+            int(self.np_random.integers(0, len(candidate_targets)))
         ])
         return self._get_obs(), self._get_info()
 
