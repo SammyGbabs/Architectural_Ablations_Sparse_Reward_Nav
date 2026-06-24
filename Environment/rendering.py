@@ -139,8 +139,13 @@ def get_obstacles() -> list[dict]:
     ]
 
 
-# The agent's deterministic start cell (hallway centre).
-AGENT_START: tuple[int, int] = (10, 10)
+# The agent's deterministic start cell (living-room corner).
+# Restored to a room corner (was the hallway centre (10,10)) so the agent must
+# perform a real cross-house traversal: the hub spawn put every room 2-4 steps
+# away, collapsing the navigation task and the architecture signal. (0,0) is the
+# true corner and is free in this map — note (1,1)/(1,2) are Sofa obstacles, so
+# the original env's (1,1) spawn would land on furniture here.
+AGENT_START: tuple[int, int] = (0, 0)
 
 
 # ---------------------------------------------------------------------------

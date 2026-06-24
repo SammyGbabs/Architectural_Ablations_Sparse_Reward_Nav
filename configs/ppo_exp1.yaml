@@ -1,0 +1,39 @@
+# =============================================================================
+# configs/ppo_exp1.yaml
+# Phase 1 — PPO Exp 1 (original Table 2, the SYMMETRIC configuration:
+# actor pi=[256,256] == critic vf=[256,256]). This is the H1 control: the
+# symmetric ratio that inverted asymmetry (Exp 4) must beat at fixed budget.
+#
+# Identical to configs/ppo_exp4.yaml except config_id and net_arch — replication
+# requires every other hyperparameter be held constant. Do NOT tune.
+# =============================================================================
+
+config_id: ppo_exp1
+algo: ppo
+policy: MlpPolicy          # flat 16-d Box obs -> MlpPolicy (CLAUDE.md)
+
+# Symmetric architecture: actor and critic identical (the 1:1 control for H1).
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: LeakyReLU   # legacy: nn.LeakyReLU (training script maps name -> class)
+ortho_init: true           # legacy: ortho_init=True
+
+# --- Shared optimisation (legacy values) ---
+lr: 0.0003
+gamma: 0.995
+batch_size: 256
+
+# --- Experiment scale ---
+n_seeds: 10                # Phase 1 main results
+env_steps: 200000          # smoke-test budget; finalised from convergence evidence
+
+# --- PPO-specific (legacy values) ---
+n_steps: 1024
+n_epochs: 7
+gae_lambda: 0.92
+clip_range: 0.2
+ent_coef: 0.01
+
+# --- Evaluation ---
+eval_freq: 20000           # legacy EvalCallback eval_freq
