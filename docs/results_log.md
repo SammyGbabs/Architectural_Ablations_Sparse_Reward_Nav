@@ -49,6 +49,12 @@
 
 **Hypothesis under test:** H1.
 
+**Config set & seed tiers.** Configs are verbatim ports of the paper's Table 1 (DQN Exp 1–5) and Table 2 (PPO Exp 1–4), in `configs/{dqn,ppo}_exp{N}.yaml`. Provenance note: DQN Exp 1/3/4 and PPO Exp 2 exist **only in the paper tables** (no committed code), and were transcribed from the tables; DQN Exp 2/5 and PPO Exp 1/3/4 additionally match the original notebook exactly. The 9 table configs run at **10 seeds (MAIN)**; the 3 baselines (Double DQN, Dueling DQN, A2C) at **5 seeds (EXPLORATORY)** → **90 + 15 = 105 runs total**. Promotion rule: if a baseline's 5-seed IQM lands close enough to PPO Exp 1/Exp 4 to affect the conclusion, promote that baseline to 10 seeds.
+
+**Baseline caveats.** Double DQN and Dueling DQN are matched to DQN Exp 5 (the best DQN config) — a clean algorithm-only comparison. **A2C is a "standard alternative" baseline, not a controlled ablation:** only its network architecture is matched to the symmetric PPO Exp 1 (so it doesn't confound the asymmetry comparison); every A2C algorithm hyperparameter is left at the SB3 A2C native default (lr 7e-4, γ 0.99, gae_lambda 1.0, ent_coef 0.0, n_steps 5, Tanh) rather than copied from PPO. So PPO-vs-A2C differs in **algorithm and most hyperparameters**. Report and read it accordingly.
+
+**Eval protocol.** Per-run metrics (success/collision rate, episode length, wait-action frequency, per-room success rate + per-room episode length, eval-return IQM, sample efficiency = env-steps to 90% of asymptotic eval IQM) are logged by `Training/metrics.RichEvalCallback` and written one-row-per-seed to `results/csv/p1_{config_id}.csv`. Eval is **deterministic** (fixed `(0,0)` spawn; the only per-episode randomness is the target-room draw), so per-room outcomes have zero within-run variance — `eval_episodes` is set to **15** (covers all 3 rooms with margin; carries the same information as 30) and is config-driven per algorithm. **POR is computed post-hoc** as `len_{room} / optimal_{room}` with BFS-verified optimal lengths `{kitchen: 11, bedroom: 11, bathroom: 22}` (no A* needed on the fixed map; general `Analysis/astar.py` is Phase 2 work).
+
 **Status:** *(update as runs land)*
 
 ### [P1][exp-id] (example — DELETE once first real entry lands)

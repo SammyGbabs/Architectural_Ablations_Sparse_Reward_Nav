@@ -1,0 +1,36 @@
+# =============================================================================
+# configs/ppo_exp3.yaml
+# Phase 1 — PPO Exp 3 (CONVENTIONAL deep-critic: pi=[128,128] < vf=[512,512,256]).
+# The "value-easy" heuristic taken to the opposite extreme of Exp 4 — the other
+# config the inverted asymmetry (Exp 4) must beat for H1.
+#
+# Verbatim from the paper's Table 2 AND the original PPO notebook (cell 5) — the
+# two agree exactly. Do NOT tune.
+# =============================================================================
+
+config_id: ppo_exp3
+algo: ppo
+policy: MlpPolicy
+
+net_arch:
+  pi: [128, 128]
+  vf: [512, 512, 256]
+activation_fn: ReLU        # Table 2 / notebook
+ortho_init: false          # notebook cell 5 (not in Table 2)
+
+lr: 0.0005                 # 5e-4
+gamma: 0.970
+batch_size: 512
+
+n_seeds: 10
+env_steps: 200000
+
+n_steps: 4096
+n_epochs: 5
+gae_lambda: 0.95
+clip_range: 0.3
+ent_coef: 0.020
+
+eval_freq: 20000
+eval_episodes: 15          # config-driven; 15 = 5/room. Eval is deterministic (fixed spawn, only target varies),
+  # so per-room outcome has zero within-run variance -> 15 carries the same info as 30.

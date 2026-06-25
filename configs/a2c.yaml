@@ -1,0 +1,45 @@
+# =============================================================================
+# configs/a2c.yaml
+# Phase 1 baseline — A2C, a "standard alternative" baseline (NOT a controlled
+# ablation of PPO).
+#
+# Principle: ARCHITECTURE-MATCHED but ALGORITHM-APPROPRIATE.
+#   * Only the network architecture is matched to the symmetric PPO Exp 1
+#     (pi=vf=[256,256]), so the baseline does not confound the asymmetry
+#     comparison H1 tests — A2C is not handed the inverted capacity split.
+#   * Every A2C algorithm hyperparameter is left at SB3's NATIVE A2C DEFAULT
+#     (lr 7e-4, gamma 0.99, gae_lambda 1.0, ent_coef 0.0, n_steps 5,
+#     activation Tanh) — NOT copied from PPO Exp 1. A2C is run as a competent
+#     standard A2C, not a PPO clone.
+#
+# Consequence (documented in results_log.md / CLAUDE.md): PPO-vs-A2C differs in
+# algorithm AND most hyperparameters, so it is a "standard alternative" baseline,
+# not a single-variable ablation. Reported at the 5-seed EXPLORATORY tier.
+#
+# NEW baseline (proposal §6.1) — NO original to port.
+# =============================================================================
+
+config_id: a2c
+algo: a2c
+policy: MlpPolicy
+matched_to: ppo_exp1       # ARCHITECTURE (net_arch) ONLY; all hyperparams are A2C defaults
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: Tanh        # SB3 ActorCriticPolicy default (Exp 1 used ReLU; NOT copied)
+ortho_init: true           # SB3 ActorCriticPolicy default (coincides with Exp 1)
+
+# --- A2C algorithm hyperparameters: all SB3 A2C native defaults ---
+lr: 0.0007                 # 7e-4, SB3 A2C default (Exp 1 used 2e-4; NOT copied)
+gamma: 0.99                # SB3 A2C default
+n_steps: 5                 # SB3 A2C default (A2C's native short rollout)
+gae_lambda: 1.0            # SB3 A2C default (Exp 1 used 0.95; NOT copied)
+ent_coef: 0.0              # SB3 A2C default (Exp 1 used 0.020; NOT copied)
+
+# --- Rig (ours, not algorithm hyperparameters) ---
+n_seeds: 5                 # EXPLORATORY tier (baseline, not a main H1 result)
+env_steps: 200000
+eval_freq: 20000
+eval_episodes: 15          # config-driven; 15 = 5/room. Eval is deterministic (fixed spawn, only target varies),
+  # so per-room outcome has zero within-run variance -> 15 carries the same info as 30.
