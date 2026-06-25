@@ -139,6 +139,18 @@ This section captures results from runs that were intentionally undersized (3 se
 
 **Caveats / status.** The symmetric-vs-inverted plateau numbers above are **predictions, not measured** — the training stack (Gymnasium/SB3/wandb) is not installed in the analysis environment. Re-run both Exp 4 (inverted) and Exp 1 (symmetric) single-seed smoke tests on Colab with the corrected spawn and confirm (a) episode lengths jump to ~11–22 and (b) whether the architectures now separate. Configs: `configs/ppo_exp4.yaml`, `configs/ppo_exp1.yaml`. This is a sanity check, not paper evidence.
 
+### [SANITY] PPO + DQN single-seed convergence — 200k env-step budget locked
+- **Date:** 2026-06-25
+- **Owner:** Samuel
+- **Runs:** single-seed (seed 0) smoke runs on the corrected `(0,0)`-spawn env.
+  - PPO Exp 4 (inverted) and Exp 1 (symmetric): converge to ~27 eval reward / ~15-step episodes, plateau well before 200k, and **tie at one seed** (expected — only the multi-seed IQM + CIs can decide H1).
+  - DQN Exp 5 (best DQN config): converges to ~27 reward, plateaus well before 200k.
+- **Decision:** `env_steps = 200000` is **locked for BOTH PPO and DQN** — no per-algorithm budget difference is needed. This finalises the value the configs carried as "pending convergence evidence."
+
+**Interpretation.** ~27 reward matches the analytic near-optimal ceiling `R(L)=30−0.2·L` at the restored mean optimal `L≈14.7` (`R(14.7)≈27.1`), i.e. agents are navigating cross-house near-optimally. Both DQN and PPO converge comfortably inside 200k, so the fixed budget is fair to both. The single-seed PPO tie means any architecture effect (if real) must surface in the *other* metrics — success rate, per-room SR (the far bathroom at 22 steps), wait-frequency, sample efficiency — which is exactly what the rich-eval CSV + rliable IQM/CIs over the full sweep will test.
+
+**Caveats.** Single seed, not paper evidence. Convergence is judged from the reward curve plateau, not a formal stationarity test.
+
 *(Further entries land here as smoke tests pass.)*
 
 ---
