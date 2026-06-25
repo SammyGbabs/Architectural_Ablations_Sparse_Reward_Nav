@@ -53,6 +53,8 @@
 
 **Baseline caveats.** Double DQN and Dueling DQN are matched to DQN Exp 5 (the best DQN config) — a clean algorithm-only comparison. **A2C is a "standard alternative" baseline, not a controlled ablation:** only its network architecture is matched to the symmetric PPO Exp 1 (so it doesn't confound the asymmetry comparison); every A2C algorithm hyperparameter is left at the SB3 A2C native default (lr 7e-4, γ 0.99, gae_lambda 1.0, ent_coef 0.0, n_steps 5, Tanh) rather than copied from PPO. So PPO-vs-A2C differs in **algorithm and most hyperparameters**. Report and read it accordingly.
 
+**Eval protocol.** Per-run metrics (success/collision rate, episode length, wait-action frequency, per-room success rate + per-room episode length, eval-return IQM, sample efficiency = env-steps to 90% of asymptotic eval IQM) are logged by `Training/metrics.RichEvalCallback` and written one-row-per-seed to `results/csv/p1_{config_id}.csv`. Eval is **deterministic** (fixed `(0,0)` spawn; the only per-episode randomness is the target-room draw), so per-room outcomes have zero within-run variance — `eval_episodes` is set to **15** (covers all 3 rooms with margin; carries the same information as 30) and is config-driven per algorithm. **POR is computed post-hoc** as `len_{room} / optimal_{room}` with BFS-verified optimal lengths `{kitchen: 11, bedroom: 11, bathroom: 22}` (no A* needed on the fixed map; general `Analysis/astar.py` is Phase 2 work).
+
 **Status:** *(update as runs land)*
 
 ### [P1][exp-id] (example — DELETE once first real entry lands)

@@ -230,7 +230,7 @@ class RichEvalCallback(_BaseCallback):
         self,
         eval_env_fn: Callable[[], Any],
         eval_freq: int,
-        n_eval_episodes: int = 30,
+        n_eval_episodes: int = 15,
         base_seed: int = EVAL_SEED_BASE,
         rooms: tuple[str, ...] = DEFAULT_TARGET_ROOMS,
         best_model_path: Optional[str] = None,

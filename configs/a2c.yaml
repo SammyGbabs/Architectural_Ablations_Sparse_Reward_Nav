@@ -41,3 +41,5 @@ ent_coef: 0.0              # SB3 A2C default (Exp 1 used 0.020; NOT copied)
 n_seeds: 5                 # EXPLORATORY tier (baseline, not a main H1 result)
 env_steps: 200000
 eval_freq: 20000
+eval_episodes: 15          # config-driven; 15 = 5/room. Eval is deterministic (fixed spawn, only target varies),
+  # so per-room outcome has zero within-run variance -> 15 carries the same info as 30.

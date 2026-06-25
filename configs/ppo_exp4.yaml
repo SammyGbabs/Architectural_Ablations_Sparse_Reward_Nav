@@ -43,3 +43,5 @@ ent_coef: 0.01
 
 # --- Evaluation ---
 eval_freq: 20000           # legacy EvalCallback eval_freq
+eval_episodes: 15          # config-driven; 15 = 5/room. Eval is deterministic (fixed spawn, only target varies),
+  # so per-room outcome has zero within-run variance -> 15 carries the same info as 30.

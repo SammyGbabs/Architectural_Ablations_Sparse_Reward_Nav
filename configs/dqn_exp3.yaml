@@ -31,3 +31,5 @@ train_freq: 4
 gradient_steps: 1
 
 eval_freq: 10000
+eval_episodes: 15          # config-driven; 15 = 5/room. Eval is deterministic (fixed spawn, only target varies),
+  # so per-room outcome has zero within-run variance -> 15 carries the same info as 30.

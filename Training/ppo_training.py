@@ -349,7 +349,7 @@ def train(args: argparse.Namespace) -> None:
         rich_eval_cb = RichEvalCallback(
             eval_env_fn=_raw_eval_env,
             eval_freq=int(cfg["eval_freq"]),
-            n_eval_episodes=int(cfg.get("eval_episodes", 30)),
+            n_eval_episodes=int(cfg.get("eval_episodes", 15)),
             best_model_path=str(ckpt_dir / f"{run_name}_best"),
             verbose=1,
         )
