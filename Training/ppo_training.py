@@ -41,6 +41,8 @@ from Training.seeds import RunSpec, seed_env, seed_everything
 
 WANDB_PROJECT = "arch-ablations-sparse-reward"
 CHECKPOINT_EVERY_STEPS = 25_000  # CLAUDE.md: checkpoint every 25k env steps
+PHASE = "p1"                     # results/csv/{phase}_{config_id}.csv
+RESULTS_CSV_DIR = Path("results/csv")
 
 # PPO constructor keys read from the config, mapped to SB3 PPO kwargs.
 # (config_key -> sb3_kwarg). Anything not here stays at the SB3 default.
@@ -320,7 +322,9 @@ def train(args: argparse.Namespace) -> None:
         return
 
     # ---- Callbacks --------------------------------------------------------
-    from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+    from stable_baselines3.common.callbacks import CheckpointCallback
+
+    from Training.metrics import RichEvalCallback, finalize_run_csv
 
     checkpoint_cb = CheckpointCallback(
         save_freq=CHECKPOINT_EVERY_STEPS,          # 1 env => every 25k env steps
@@ -332,18 +336,24 @@ def train(args: argparse.Namespace) -> None:
     if wandb_callback is not None:
         callbacks.append(wandb_callback)
 
-    # Optional deterministic evaluation (no early-stopping: Phase 1 compares at a
-    # FIXED step budget, so we never let an eval callback cut training short).
+    # Rich deterministic evaluation: logs success/collision/wait-freq/per-room SR
+    # and per-room episode length under eval/*, tracks per-eval IQM for sample
+    # efficiency, and saves the best-by-IQM model. No early-stopping — Phase 1
+    # compares at a FIXED step budget, so eval never cuts training short.
+    rich_eval_cb = None
     if "eval_freq" in cfg:
-        eval_env = make_env(spec.seed)
-        callbacks.append(EvalCallback(
-            eval_env,
-            best_model_save_path=str(ckpt_dir / "best"),
-            log_path=str(ckpt_dir / "best"),
+        def _raw_eval_env():
+            from Environment.custom_env import ResidentialGridEnv
+            return ResidentialGridEnv()
+
+        rich_eval_cb = RichEvalCallback(
+            eval_env_fn=_raw_eval_env,
             eval_freq=int(cfg["eval_freq"]),
-            deterministic=True,
-            render=False,
-        ))
+            n_eval_episodes=int(cfg.get("eval_episodes", 30)),
+            best_model_path=str(ckpt_dir / f"{run_name}_best"),
+            verbose=1,
+        )
+        callbacks.append(rich_eval_cb)
 
     # ---- Train ------------------------------------------------------------
     print(f"[ppo] training for {remaining:,} more steps "
@@ -360,6 +370,22 @@ def train(args: argparse.Namespace) -> None:
     final_path = ckpt_dir / f"{run_name}_final"
     model.save(final_path)
     print(f"[ppo] saved final model -> {final_path}.zip")
+
+    # ---- Per-seed metrics CSV (for rliable IQM + CIs later) ---------------
+    if rich_eval_cb is not None and rich_eval_cb.last_agg:
+        csv_path = RESULTS_CSV_DIR / f"{PHASE}_{cfg['config_id']}.csv"
+        finalize_run_csv(
+            csv_path,
+            phase=PHASE,
+            config_id=cfg["config_id"],
+            algo=cfg["algo"],
+            seed=spec.seed,
+            env_steps=int(model.num_timesteps),
+            callback=rich_eval_cb,
+            wandb_run_name=run_name,
+        )
+        print(f"[ppo] wrote per-seed metrics row -> {csv_path}")
+
     if wandb_run is not None:
         wandb_run.finish()
 
