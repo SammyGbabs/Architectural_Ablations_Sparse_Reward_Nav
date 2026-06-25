@@ -21,6 +21,7 @@ from typing import Any
 # namespace keep working, and so the trainer reads as a self-contained unit.
 from Training.trainer_common import (  # noqa: F401  (re-exported)
     SUPPORTED_ACTIVATIONS,
+    build_actor_critic_policy_kwargs as build_policy_kwargs,
     build_arg_parser,
     find_latest_checkpoint,
     parse_checkpoint_steps,
@@ -29,6 +30,8 @@ from Training.trainer_common import (  # noqa: F401  (re-exported)
     resolve_activation,
     resolve_wandb_run_id,
     run_training,
+    select_kwargs,
+    validate_actor_critic_config,
 )
 
 # PPO constructor keys read from the config, mapped to SB3 PPO kwargs.
@@ -46,27 +49,12 @@ _PPO_KWARG_MAP: dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# PPO-specific config handling (pure, import-safe)
+# PPO-specific config handling (delegates to the shared actor-critic helpers)
 # ---------------------------------------------------------------------------
 
 def validate_ppo_config(cfg: dict[str, Any]) -> None:
     """Raise if the config is not a usable PPO config (fail loud, not silent)."""
-    if cfg.get("algo") != "ppo":
-        raise ValueError(f"expected algo: ppo, got {cfg.get('algo')!r}")
-    for key in ("config_id", "net_arch", "env_steps"):
-        if key not in cfg:
-            raise ValueError(f"config missing required key: {key!r}")
-    net_arch = cfg["net_arch"]
-    if not isinstance(net_arch, dict) or "pi" not in net_arch or "vf" not in net_arch:
-        raise ValueError(
-            "PPO net_arch must be a dict with 'pi' and 'vf' lists, got "
-            f"{net_arch!r}"
-        )
-    act = cfg.get("activation_fn")
-    if act is not None and act not in SUPPORTED_ACTIVATIONS:
-        raise ValueError(
-            f"activation_fn {act!r} not in supported {SUPPORTED_ACTIVATIONS}"
-        )
+    validate_actor_critic_config(cfg, "ppo")
 
 
 def load_config(config_path) -> dict[str, Any]:
@@ -78,23 +66,7 @@ def load_config(config_path) -> dict[str, Any]:
 
 def extract_ppo_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
     """Pull the SB3 PPO constructor kwargs out of the config (no policy_kwargs)."""
-    return {sb3_key: cfg[cfg_key]
-            for cfg_key, sb3_key in _PPO_KWARG_MAP.items()
-            if cfg_key in cfg}
-
-
-def build_policy_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
-    """Assemble SB3 ``policy_kwargs`` from the config (resolves activation)."""
-    policy_kwargs: dict[str, Any] = {
-        "net_arch": {"pi": list(cfg["net_arch"]["pi"]),
-                     "vf": list(cfg["net_arch"]["vf"])},
-    }
-    act = resolve_activation(cfg.get("activation_fn"))
-    if act is not None:
-        policy_kwargs["activation_fn"] = act
-    if "ortho_init" in cfg:
-        policy_kwargs["ortho_init"] = bool(cfg["ortho_init"])
-    return policy_kwargs
+    return select_kwargs(cfg, _PPO_KWARG_MAP)
 
 
 # ---------------------------------------------------------------------------

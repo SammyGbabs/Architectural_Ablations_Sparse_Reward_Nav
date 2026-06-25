@@ -26,7 +26,9 @@ from pathlib import Path
 from typing import Any
 
 from Training.trainer_common import (  # noqa: F401  (re-exported for symmetry/tests)
+    DQN_KWARG_MAP,
     SUPPORTED_ACTIVATIONS,
+    build_value_based_policy_kwargs as build_policy_kwargs,
     build_arg_parser,
     find_latest_checkpoint,
     parse_checkpoint_steps,
@@ -36,47 +38,18 @@ from Training.trainer_common import (  # noqa: F401  (re-exported for symmetry/t
     resolve_activation,
     resolve_wandb_run_id,
     run_training,
+    select_kwargs,
+    validate_value_based_config,
 )
-
-# DQN constructor keys read from the config, mapped to SB3 DQN kwargs.
-# (config_key -> sb3_kwarg). Anything not here stays at the SB3 default.
-_DQN_KWARG_MAP: dict[str, str] = {
-    "lr": "learning_rate",
-    "buffer_size": "buffer_size",
-    "batch_size": "batch_size",
-    "gamma": "gamma",
-    "learning_starts": "learning_starts",
-    "target_update_interval": "target_update_interval",
-    "train_freq": "train_freq",
-    "gradient_steps": "gradient_steps",
-    "exploration_fraction": "exploration_fraction",
-    "exploration_initial_eps": "exploration_initial_eps",
-    "exploration_final_eps": "exploration_final_eps",
-}
 
 
 # ---------------------------------------------------------------------------
-# DQN-specific config handling (pure, import-safe)
+# DQN-specific config handling (delegates to the shared value-based helpers)
 # ---------------------------------------------------------------------------
 
 def validate_dqn_config(cfg: dict[str, Any]) -> None:
     """Raise if the config is not a usable DQN config (fail loud, not silent)."""
-    if cfg.get("algo") != "dqn":
-        raise ValueError(f"expected algo: dqn, got {cfg.get('algo')!r}")
-    for key in ("config_id", "net_arch", "env_steps"):
-        if key not in cfg:
-            raise ValueError(f"config missing required key: {key!r}")
-    net_arch = cfg["net_arch"]
-    # DQN has no actor/critic split: net_arch is a flat list of layer widths.
-    if not isinstance(net_arch, list) or not all(isinstance(n, int) for n in net_arch):
-        raise ValueError(
-            f"DQN net_arch must be a flat list of ints, got {net_arch!r}"
-        )
-    act = cfg.get("activation_fn")
-    if act is not None and act not in SUPPORTED_ACTIVATIONS:
-        raise ValueError(
-            f"activation_fn {act!r} not in supported {SUPPORTED_ACTIVATIONS}"
-        )
+    validate_value_based_config(cfg, "dqn")
 
 
 def load_config(config_path) -> dict[str, Any]:
@@ -88,18 +61,7 @@ def load_config(config_path) -> dict[str, Any]:
 
 def extract_dqn_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
     """Pull the SB3 DQN constructor kwargs out of the config (no policy_kwargs)."""
-    return {sb3_key: cfg[cfg_key]
-            for cfg_key, sb3_key in _DQN_KWARG_MAP.items()
-            if cfg_key in cfg}
-
-
-def build_policy_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
-    """Assemble SB3 ``policy_kwargs`` for DQN (flat net_arch list; no pi/vf)."""
-    policy_kwargs: dict[str, Any] = {"net_arch": list(cfg["net_arch"])}
-    act = resolve_activation(cfg.get("activation_fn"))
-    if act is not None:
-        policy_kwargs["activation_fn"] = act
-    return policy_kwargs
+    return select_kwargs(cfg, DQN_KWARG_MAP)
 
 
 # ---------------------------------------------------------------------------

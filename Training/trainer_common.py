@@ -77,6 +77,101 @@ def resolve_activation(name: str | None):
 
 
 # ---------------------------------------------------------------------------
+# Shared config validation + policy_kwargs / kwargs extraction
+# ---------------------------------------------------------------------------
+# Two algorithm FAMILIES share validation + policy_kwargs shape:
+#   * actor-critic (ppo, a2c): net_arch is a {pi, vf} dict.
+#   * value-based (dqn, double_dqn, dueling_dqn): net_arch is a flat list.
+# All five trainers call these so the rules can't drift apart.
+
+# config_key -> SB3 kwarg for the value-based (DQN) family (shared by dqn +
+# double_dqn + dueling_dqn). The actor-critic maps live in their trainers.
+DQN_KWARG_MAP: dict[str, str] = {
+    "lr": "learning_rate",
+    "buffer_size": "buffer_size",
+    "batch_size": "batch_size",
+    "gamma": "gamma",
+    "learning_starts": "learning_starts",
+    "target_update_interval": "target_update_interval",
+    "train_freq": "train_freq",
+    "gradient_steps": "gradient_steps",
+    "exploration_fraction": "exploration_fraction",
+    "exploration_initial_eps": "exploration_initial_eps",
+    "exploration_final_eps": "exploration_final_eps",
+}
+
+
+def select_kwargs(cfg: dict[str, Any], mapping: dict[str, str]) -> dict[str, Any]:
+    """Pull SB3 constructor kwargs from the config via a config_key->sb3_key map."""
+    return {sb3_key: cfg[cfg_key]
+            for cfg_key, sb3_key in mapping.items() if cfg_key in cfg}
+
+
+def _require_keys(cfg: dict[str, Any]) -> None:
+    for key in ("config_id", "net_arch", "env_steps"):
+        if key not in cfg:
+            raise ValueError(f"config missing required key: {key!r}")
+
+
+def _check_activation(cfg: dict[str, Any]) -> None:
+    act = cfg.get("activation_fn")
+    if act is not None and act not in SUPPORTED_ACTIVATIONS:
+        raise ValueError(
+            f"activation_fn {act!r} not in supported {SUPPORTED_ACTIVATIONS}"
+        )
+
+
+def validate_actor_critic_config(cfg: dict[str, Any], expected_algo: str) -> None:
+    """Validate a ppo/a2c config: algo, required keys, net_arch {pi, vf} dict."""
+    if cfg.get("algo") != expected_algo:
+        raise ValueError(f"expected algo: {expected_algo}, got {cfg.get('algo')!r}")
+    _require_keys(cfg)
+    net_arch = cfg["net_arch"]
+    if not isinstance(net_arch, dict) or "pi" not in net_arch or "vf" not in net_arch:
+        raise ValueError(
+            f"{expected_algo} net_arch must be a dict with 'pi' and 'vf' lists, "
+            f"got {net_arch!r}"
+        )
+    _check_activation(cfg)
+
+
+def validate_value_based_config(cfg: dict[str, Any], expected_algo: str) -> None:
+    """Validate a dqn-family config: algo, required keys, flat-list net_arch."""
+    if cfg.get("algo") != expected_algo:
+        raise ValueError(f"expected algo: {expected_algo}, got {cfg.get('algo')!r}")
+    _require_keys(cfg)
+    net_arch = cfg["net_arch"]
+    if not isinstance(net_arch, list) or not all(isinstance(n, int) for n in net_arch):
+        raise ValueError(
+            f"{expected_algo} net_arch must be a flat list of ints, got {net_arch!r}"
+        )
+    _check_activation(cfg)
+
+
+def build_actor_critic_policy_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
+    """policy_kwargs for ppo/a2c: {pi, vf} net_arch + activation + ortho_init."""
+    policy_kwargs: dict[str, Any] = {
+        "net_arch": {"pi": list(cfg["net_arch"]["pi"]),
+                     "vf": list(cfg["net_arch"]["vf"])},
+    }
+    act = resolve_activation(cfg.get("activation_fn"))
+    if act is not None:
+        policy_kwargs["activation_fn"] = act
+    if "ortho_init" in cfg:
+        policy_kwargs["ortho_init"] = bool(cfg["ortho_init"])
+    return policy_kwargs
+
+
+def build_value_based_policy_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
+    """policy_kwargs for the dqn family: flat-list net_arch + optional activation."""
+    policy_kwargs: dict[str, Any] = {"net_arch": list(cfg["net_arch"])}
+    act = resolve_activation(cfg.get("activation_fn"))
+    if act is not None:
+        policy_kwargs["activation_fn"] = act
+    return policy_kwargs
+
+
+# ---------------------------------------------------------------------------
 # W&B planning (decided without importing wandb)
 # ---------------------------------------------------------------------------
 
