@@ -1,0 +1,6 @@
+phase,config_id,algo,variant,ent_coef,n_steps,seed,env_steps,eval_reward_mean,eval_reward_std,mean_ep_len,n_success,n_collision,n_timeout,n_eval_episodes,stoch_success,stoch_reward_mean,stoch_n_eval_episodes
+p1,a2c,a2c,native,0.0,5,0,100000,-5.20,0.00,2.0,0,18,0,18,,,
+p1,a2c,a2c,ent0.01,0.01,5,0,100000,-5.20,0.00,2.0,0,18,0,18,,,
+p1,a2c,a2c,ent0.01_n20,0.01,20,0,100000,-5.20,0.00,2.0,0,18,0,18,,,
+p1,a2c,a2c,ent0.1,0.1,5,0,100000,-5.20,0.00,2.0,0,18,0,18,0,-5.31,18
+p1,a2c,a2c,ent0.1_n20,0.1,20,0,100000,-5.20,0.00,2.0,0,18,0,18,0,-5.37,18
