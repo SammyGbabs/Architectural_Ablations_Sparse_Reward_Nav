@@ -31,8 +31,12 @@ from Training.seeds import RunSpec, seed_everything
 
 WANDB_PROJECT = "arch-ablations-sparse-reward"
 CHECKPOINT_EVERY_STEPS = 25_000   # CLAUDE.md: checkpoint every 25k env steps
-PHASE = "p1"                      # results/csv/{phase}_{config_id}.csv
+PHASE = "p1"                      # {phase}_{config_id}.csv
+# Per-seed CSVs are written under <output_dir>/csv/ (so they persist on Drive
+# alongside checkpoints across Colab disconnects — see run_training). This is the
+# repo canonical dir for the *committed* copies the user syncs back from Drive.
 RESULTS_CSV_DIR = Path("results/csv")
+CSV_SUBDIR = "csv"                # <output_dir>/csv/  (the live write location)
 
 # Activation-function names accepted in configs (resolved to torch.nn lazily).
 SUPPORTED_ACTIVATIONS = ("ReLU", "LeakyReLU", "Tanh", "ELU", "GELU")
@@ -330,6 +334,7 @@ def run_training(
     out_dir = Path(args.output_dir)
     ckpt_dir = out_dir / "checkpoints"
     tb_dir = out_dir / "tb"
+    csv_dir = out_dir / CSV_SUBDIR     # CSVs live with checkpoints (persist on Drive)
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     tb_dir.mkdir(parents=True, exist_ok=True)
 
@@ -424,7 +429,10 @@ def run_training(
     print(f"[{tag}] saved final model -> {final_path}.zip")
 
     if rich_eval_cb is not None and rich_eval_cb.last_agg:
-        csv_path = RESULTS_CSV_DIR / f"{PHASE}_{cfg['config_id']}.csv"
+        # Under --output-dir (Drive on Colab), NOT repo-relative, so it survives
+        # disconnects. finalize_run_csv mkdir's the parent and upserts by
+        # (config_id, seed), so re-runs/resumes overwrite rather than duplicate.
+        csv_path = csv_dir / f"{PHASE}_{cfg['config_id']}.csv"
         finalize_run_csv(
             csv_path,
             phase=PHASE,
