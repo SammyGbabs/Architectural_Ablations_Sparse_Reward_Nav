@@ -84,6 +84,42 @@
 
 ---
 
+### [P1][a2c] PROVISIONAL — native A2C collapses to a collision/suicide local optimum (seed-0 diagnostic)
+- **Date:** 2026-06-26
+- **Owner:** Samuel
+- **Status:** **PROVISIONAL — single seed (0), local/offline CPU runs, pending the 5-seed EXPLORATORY sweep for confirmation.** Not paper evidence yet; recorded now because these diagnostic runs were offline and will **not** persist in W&B, so this entry + `results/csv/p1_a2c_tuning_diagnostic.csv` are their only record.
+- **W&B group:** *(none — offline diagnostic, not logged to W&B)*
+- **Config(s):** `configs/a2c.yaml` (native SB3 A2C defaults: lr 7e-4, γ 0.99, gae_lambda 1.0, ent_coef 0.0, n_steps 5, Tanh, arch pi=vf=[256,256]) + four manual tuning overrides (below).
+- **Seeds:** 1 (seed 0 only)
+- **Env steps per run:** 100k (diagnostic; main budget is 200k)
+- **Eval:** deterministic policy, 18 episodes (6/room), fixed `(0,0)` spawn; stochastic-policy eval added for the two ent_coef=0.1 variants.
+
+**Finding.** Native A2C does **not** learn this task and is **not merely slow** — it converges by 20k env steps to a degenerate policy and stays there flat through 100k: walk 2 steps, hit an obstacle, collide, terminate. Every eval episode, every checkpoint, every target room: identical. This is robust to the standard exploration/rollout knobs.
+
+**Tuning sweep (final eval @ 100k, seed 0, 18 deterministic eval episodes).** Raw values in `results/csv/p1_a2c_tuning_diagnostic.csv`.
+
+| ent_coef | n_steps | eval R (mean ± std) | mean ep len | success | collision | timeout | stochastic-policy success |
+|---|---|---|---|---|---|---|---|
+| **0.0** (native) | **5** (native) | −5.20 ± 0.00 | 2.0 | 0 / 18 | **18 / 18** | 0 / 18 | — |
+| 0.01 | 5 | −5.20 ± 0.00 | 2.0 | 0 / 18 | 18 / 18 | 0 / 18 | — |
+| 0.01 | 20 | −5.20 ± 0.00 | 2.0 | 0 / 18 | 18 / 18 | 0 / 18 | — |
+| 0.1 | 5 | −5.20 ± 0.00 | 2.0 | 0 / 18 | 18 / 18 | 0 / 18 | **0 / 18** (R −5.31) |
+| 0.1 | 20 | −5.20 ± 0.00 | 2.0 | 0 / 18 | 18 / 18 | 0 / 18 | **0 / 18** (R −5.37) |
+
+**Mechanism.** The plateau is the exact collision floor: `−5.20 = 2·(−0.1) step + (−5.0) collision`. The reward has a **suicide local optimum**: with the corner spawn the target is 14–22 steps away, so an agent that has not yet discovered the +15 target faces collide-early (≈ −5.2) vs. wander-to-timeout (−0.1·150 − 3 = −18; ≈ −8.5 discounted). Colliding immediately is the higher-return policy *conditional on never reaching the goal*, and A2C descends straight into it. The failure is **exploration-bound, not credit-bound**: even at ent_coef=0.1 (5× PPO Exp 1's 0.020, 10× the first tuning attempt) the **stochastic** policy still scores 0/18 — undirected on-policy exploration essentially never reaches the target within budget, so longer rollouts (n_steps 20) cannot help (there is no +15 to propagate). On-policy A2C also **discards its rare goal-hits** after one update, whereas DQN's replay buffer lets a single lucky success bootstrap backward many times.
+
+**Isolation to the A2C algorithm.** On the **identical** env / trainer (`trainer_common`) / eval pipeline, the two DQN variants learn to ~25 (ε-greedy + replay escape the trap) and PPO Exp 1 solves it through the **identical** `{pi:[256,256], vf:[256,256]}` `policy_kwargs` path. So this is not an env bug, a wiring bug, or a config typo — it is the A2C algorithm (on-policy, n_steps=5, no replay) failing a hard-exploration sparse-reward task. This is a **legitimate "standard alternative baseline" finding**, and the table above is the evidence that A2C *was* given a fair tuning attempt (entropy and rollout length both swept) before being reported as a failure.
+
+**Implication.** Recommend **keeping `configs/a2c.yaml` at native SB3 defaults** — tuning neither helps (table above) nor fits the pre-registered "native-defaults standard-alternative" framing. Run the 5 EXPLORATORY seeds as planned; expect ~−5.2 across all 5. If confirmed, A2C is reported as an exploratory contrast (PPO/DQN solve the task; native A2C does not), not as H1 evidence.
+
+**Caveats / known issues.**
+- Single seed (0); the 5-seed sweep is the confirmation. The collapse being bit-identical across five different hyperparameter settings makes seed-dependence unlikely, but it is not yet measured.
+- Local CPU, offline (no W&B). The CSV under `results/csv/` is the only persistent record of these specific runs.
+- Stochastic-policy eval was only run for the two ent_coef=0.1 variants (the strongest-exploration cases — the ones where a rescue, if any, would show).
+- Diagnostic harness: `scratchpad/a2c_diag.py` (not committed — reuses `trainer_common` + `baselines/a2c.py` build path verbatim, only the override dict changes).
+
+---
+
 ## Phase 2 — Capacity-ratio ablation, procedural generalisation, POMDP variants
 
 **Purpose:** Test H1 cleanly by holding total parameter budget constant and varying actor:critic ratio. Test H3 by training on procedural layouts and measuring train-test gap. Resolve the POMDP framing problem from Reviewer 1.
