@@ -195,3 +195,28 @@ def test_fresh_suffixes_run_id():
     assert plan["run_id"].startswith(RUN + "_")
     assert plan["init_kwargs"]["id"] == plan["run_id"]
     assert plan["init_kwargs"]["resume"] == "allow"
+
+
+def test_no_sweep_tag_leaves_id_and_group_untagged():
+    # back-compat: default (no tag) is exactly the old behaviour.
+    plan = plan_wandb(RUN, "ppo_exp4", CFG, mode="online", fresh=False)
+    assert plan["init_kwargs"]["id"] == RUN
+    assert plan["init_kwargs"]["name"] == RUN
+    assert plan["init_kwargs"]["group"] == "ppo_exp4"
+
+
+def test_sweep_tag_namespaces_id_name_group_deterministically():
+    from Training.trainer_common import namespaced_run_name
+
+    plan = plan_wandb(RUN, "ppo_exp4", CFG, mode="online", fresh=False, sweep_tag="v2")
+    # id/name/group all namespaced away from the ghost ids...
+    assert plan["init_kwargs"]["id"] == f"{RUN}_v2"
+    assert plan["init_kwargs"]["name"] == f"{RUN}_v2"
+    assert plan["init_kwargs"]["group"] == "ppo_exp4_v2"
+    assert plan["run_id"] == f"{RUN}_v2"
+    # ...but still a deterministic (non-timestamped) id, so resume works.
+    assert plan["init_kwargs"]["resume"] == "allow"
+    assert plan["run_id"] == plan_wandb(  # same inputs -> same id (deterministic)
+        RUN, "ppo_exp4", CFG, mode="online", fresh=False, sweep_tag="v2")["run_id"]
+    assert namespaced_run_name(RUN, "v2") == f"{RUN}_v2"
+    assert namespaced_run_name(RUN, None) == RUN      # the marker/checkpoint key
