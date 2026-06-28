@@ -106,14 +106,25 @@ def mark_complete(output_dir: str | Path, run_name: str) -> None:
 # ---------------------------------------------------------------------------
 
 def build_command(spec: RunSpec, args: argparse.Namespace) -> list[str]:
-    """The subprocess command for one run (deterministic id; NO --fresh)."""
-    return [
+    """
+    The subprocess command for one run (deterministic id; NO --fresh).
+
+    The sweep tag is passed via ``--wandb-tag`` so this sweep's W&B runs are
+    namespaced away from old ghost runs. It namespaces the W&B id/name/group
+    ONLY — ``run_name`` (and therefore the ``.done`` marker and checkpoint
+    filenames) is untagged, so resume and skip-on-done are tag-independent.
+    """
+    cmd = [
         sys.executable, "-m", TRAINER_MODULE[spec.algo],
         "--config", str(Path(args.configs_dir) / f"{spec.config_id}.yaml"),
         "--seed", str(spec.seed),
         "--output-dir", args.output_dir,
         "--wandb-mode", args.wandb_mode,
     ]
+    sweep_tag = getattr(args, "sweep_tag", None)
+    if sweep_tag:
+        cmd += ["--wandb-tag", sweep_tag]
+    return cmd
 
 
 def run_sweep(args: argparse.Namespace) -> int:
@@ -122,9 +133,14 @@ def run_sweep(args: argparse.Namespace) -> int:
         queue = queue[: args.limit]
 
     if args.dry_run:
+        tag = getattr(args, "sweep_tag", None)
+        ns = (f"W&B id/group namespaced with sweep tag '{tag}' "
+              f"(e.g. ppo_ppo_exp4_seed0_{tag}); markers/checkpoints stay untagged."
+              if tag else "W&B namespacing OFF (no sweep tag).")
         print(f"Phase 1 sweep - {len(queue)} runs (front-loaded; baselines last):\n")
         print(format_queue(queue))
-        print(f"\n(dry run - nothing launched). Output dir: {args.output_dir}")
+        print(f"\n{ns}")
+        print(f"(dry run - nothing launched). Output dir: {args.output_dir}")
         return 0
 
     failures: list[str] = []
@@ -166,6 +182,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wandb-mode", type=str, default="online",
                         choices=["online", "offline", "disabled"],
                         help="Passed through to each trainer.")
+    parser.add_argument("--sweep-tag", type=str, default="v2",
+                        help="Namespace tag for this sweep's W&B ids/names/groups "
+                             "(e.g. 'v2' or a launch date), keeping them distinct "
+                             "from old pre-sweep ghost runs. Deterministic per "
+                             "(config, seed) so resume still works; does NOT affect "
+                             "the .done markers or checkpoints (those key off the "
+                             "untagged run_name). Pass '' to disable namespacing.")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the ordered queue and exit (launch nothing).")
     parser.add_argument("--keep-going", action="store_true",

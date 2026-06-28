@@ -179,6 +179,21 @@ def build_value_based_policy_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
 # W&B planning (decided without importing wandb)
 # ---------------------------------------------------------------------------
 
+def namespaced_run_name(run_name: str, sweep_tag: str | None) -> str:
+    """
+    Apply a sweep namespace tag to a run name: ``{run_name}_{sweep_tag}``.
+
+    This is the ONLY place the sweep tag touches identity, and it touches **only
+    the W&B-facing name/id/group** — never ``RunSpec.run_name`` itself, which
+    stays ``{algo}_{config_id}_seed{N}``. So the sweep tag distinguishes this
+    sweep's W&B runs from old pre-sweep "ghost" runs while leaving the local
+    ``.done`` markers and checkpoint filenames (both keyed off the untagged
+    ``run_name``) completely unchanged. Deterministic per (config, seed):
+    same inputs -> same namespaced id, so crash-resume still works.
+    """
+    return f"{run_name}_{sweep_tag}" if sweep_tag else run_name
+
+
 def resolve_wandb_run_id(run_name: str, fresh: bool) -> str:
     """Deterministic id (== run_name) by default; timestamp-suffixed if ``fresh``."""
     if not fresh:
@@ -192,24 +207,34 @@ def plan_wandb(
     config: dict[str, Any],
     mode: str,
     fresh: bool,
+    sweep_tag: str | None = None,
 ) -> dict[str, Any]:
     """
     Decide all W&B behaviour without importing wandb. ``disabled`` skips
     wandb.init entirely; ``offline`` forces ``WANDB_MODE=offline`` so the server
     is never contacted; the deterministic id always carries ``resume="allow"`` so
     a re-run resumes the same run instead of erroring "run ID in use".
+
+    ``sweep_tag`` (e.g. ``"v2"``) namespaces the W&B id, display name, and group
+    away from old ghost runs. It is applied to the W&B identity ONLY; it stays
+    deterministic per (config, seed), so resume and ``.done`` markers (which key
+    off the untagged ``run_name``) are unaffected. ``sweep_tag`` and ``fresh`` are
+    independent: the tag is applied first, then ``fresh`` adds its timestamp on
+    top — but the sweep never uses ``fresh`` (it breaks resume).
     """
     if mode == "disabled":
         return {"enabled": False, "env": {}, "init_kwargs": None, "run_id": None}
 
     env = {"WANDB_MODE": "offline"} if mode == "offline" else {}
-    run_id = resolve_wandb_run_id(run_name, fresh)
+    tagged_name = namespaced_run_name(run_name, sweep_tag)
+    run_id = resolve_wandb_run_id(tagged_name, fresh)
+    group_name = f"{group}_{sweep_tag}" if sweep_tag else group
     init_kwargs = {
         "project": WANDB_PROJECT,
-        "name": run_name,
+        "name": tagged_name,
         "id": run_id,
         "resume": "allow",
-        "group": group,
+        "group": group_name,
         "config": config,
         "sync_tensorboard": True,
         "mode": mode,
@@ -301,6 +326,11 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
     parser.add_argument("--fresh", action="store_true",
                         help="Clean run: timestamp-suffix the W&B id (new run, never "
                              "resumes the existing one) and ignore checkpoints.")
+    parser.add_argument("--wandb-tag", type=str, default=None,
+                        help="Sweep namespace tag (e.g. 'v2') suffixed onto the W&B "
+                             "id/name/group to keep this sweep's runs distinct from "
+                             "old ghost runs. Deterministic per (config, seed); does "
+                             "NOT change run_name, so markers/checkpoints are unaffected.")
     parser.add_argument("--total-steps", type=int, default=None,
                         help="Override env_steps for a quick smoke test (debug only).")
     return parser
@@ -349,6 +379,7 @@ def run_training(
         config={**cfg, "seed": spec.seed, "total_steps": total_steps},
         mode=args.wandb_mode,
         fresh=args.fresh,
+        sweep_tag=getattr(args, "wandb_tag", None),
     )
     wandb_run = None
     wandb_callback = None

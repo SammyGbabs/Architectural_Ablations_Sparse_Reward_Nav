@@ -59,13 +59,23 @@ def test_build_command_uses_deterministic_id_no_fresh():
     spec = q[0]
     import argparse
     args = argparse.Namespace(configs_dir="configs", output_dir="runs",
-                              wandb_mode="online")
+                              wandb_mode="online", sweep_tag="v2")
     cmd = build_command(spec, args)
     assert "--fresh" not in cmd                 # deterministic ids -> resume="allow"
     assert "-m" in cmd and TRAINER_MODULE[spec.algo] in cmd
     assert "--seed" in cmd and str(spec.seed) in cmd
     assert f"configs/{spec.config_id}.yaml".replace("/", "\\") in cmd or \
            f"configs/{spec.config_id}.yaml" in cmd
+    # the sweep tag is passed through so W&B ids get namespaced
+    assert "--wandb-tag" in cmd and "v2" in cmd
+
+
+def test_build_command_omits_tag_when_disabled():
+    import argparse
+    spec = build_queue()[0]
+    args = argparse.Namespace(configs_dir="configs", output_dir="runs",
+                              wandb_mode="online", sweep_tag="")
+    assert "--wandb-tag" not in build_command(spec, args)
 
 
 def test_resumability_marker_roundtrip(tmp_path):
@@ -73,3 +83,16 @@ def test_resumability_marker_roundtrip(tmp_path):
     assert not is_run_complete(tmp_path, rn)
     mark_complete(tmp_path, rn)
     assert is_run_complete(tmp_path, rn)
+
+
+def test_markers_are_independent_of_sweep_tag(tmp_path):
+    # Markers key off the untagged RunSpec.run_name, so an Exp 1 run completed
+    # under the OLD (no-tag) scheme still SKIPs after the sweep tag is added —
+    # the tag only touches the W&B id, never the marker filename.
+    from Training.seeds import RunSpec
+    for seed in range(10):
+        mark_complete(tmp_path, RunSpec("ppo", "ppo_exp1", seed).run_name)
+    # build the queue and confirm every ppo_exp1 spec is now considered complete
+    exp1 = [s for s in build_queue() if s.config_id == "ppo_exp1"]
+    assert len(exp1) == 10
+    assert all(is_run_complete(tmp_path, s.run_name) for s in exp1)
