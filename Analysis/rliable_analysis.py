@@ -46,7 +46,11 @@ from rliable import metrics
 from rliable import plot_utils
 
 sns.set_theme(style="whitegrid")
-plt.rcParams["font.family"] = "Arial"
+# Honour the project's Arial convention if the font exists, else fall back
+# silently down the sans-serif chain (Colab has DejaVu Sans, not Arial) — using
+# the font.sans-serif fallback list avoids matplotlib's "findfont" warning spam.
+plt.rcParams["font.family"] = "sans-serif"
+plt.rcParams["font.sans-serif"] = ["Arial", "Liberation Sans", "DejaVu Sans"]
 
 # Input dir: the mounted-Drive csv/ folder where the sweep writes per-seed CSVs.
 DATA_DIR = Path(os.environ.get(
@@ -472,25 +476,42 @@ if "a2c" in collapse:
 # FIGURE 1 (centerpiece): IQM + 95% CI for the 9 main configs
 # ---------------------------------------------------------------------------
 main_present = [c for c in MAIN_CONFIGS if c in FRAMES]
-sdict_main = score_dict(main_present)
-pts_main, cis_main = iqm_interval_estimates(sdict_main)
+pts_main, cis_main = iqm_interval_estimates(score_dict(main_present))
 
-# rliable's plot_interval_estimates draws a horizontal point+CI plot.
-palette = sns.color_palette("tab10", n_colors=len(main_present))
-colors = {LABELS[c]: palette[i] for i, c in enumerate(main_present)}
-algos = [LABELS[c] for c in main_present]
+# Draw the point+CI plot manually (NOT plot_utils.plot_interval_estimates — that
+# helper makes its OWN figure and ignores an `ax`, so saving our fig gave a blank
+# canvas). This mirrors the sample-efficiency figure, which renders correctly.
+ppo_color = sns.color_palette("tab10")[0]
+dqn_color = sns.color_palette("tab10")[3]
 
 fig, ax = plt.subplots(figsize=(8, 6))
-plot_utils.plot_interval_estimates(
-    {a: pts_main[a] for a in algos},
-    {a: cis_main[a] for a in algos},
-    metric_names=["IQM eval return"],
-    algorithms=algos,
-    colors=colors,
-    xlabel="IQM eval return (95% stratified-bootstrap CI)",
-    ax=ax,
-)
+yticks, ylabels = [], []
+for y, cid in enumerate(main_present):
+    lab = LABELS[cid]
+    iqm = float(pts_main[lab][0])
+    lo = float(cis_main[lab][0, 0])
+    hi = float(cis_main[lab][1, 0])
+    color = ppo_color if cid.startswith("ppo") else dqn_color
+    ax.errorbar(iqm, y, xerr=[[iqm - lo], [hi - iqm]], fmt="o", color=color,
+                capsize=4, markersize=9, lw=2, elinewidth=2)
+    ax.annotate(f"{iqm:.2f}", (iqm, y), textcoords="offset points",
+                xytext=(0, 9), ha="center", fontsize=8, color=color)
+    yticks.append(y)
+    ylabels.append(lab)
+ax.set_yticks(yticks)
+ax.set_yticklabels(ylabels)
+ax.invert_yaxis()                       # first config (PPO Exp 1) at the top
+ax.margins(y=0.04)
+ax.set_xlabel("IQM eval return  (95% stratified-bootstrap CI)")
 ax.set_title("Phase 1 — IQM eval return, main configs (PPO Exp 1-4, DQN Exp 1-5)")
+ax.grid(axis="x", alpha=0.3)
+from matplotlib.lines import Line2D
+ax.legend(handles=[
+    Line2D([0], [0], marker="o", color="w", markerfacecolor=ppo_color,
+           markersize=9, label="PPO"),
+    Line2D([0], [0], marker="o", color="w", markerfacecolor=dqn_color,
+           markersize=9, label="DQN")],
+    loc="lower right", frameon=True)
 fig.tight_layout()
 fig1_path = FIG_DIR / "p1_iqm_main_configs.png"
 fig.savefig(fig1_path, dpi=300, bbox_inches="tight")
