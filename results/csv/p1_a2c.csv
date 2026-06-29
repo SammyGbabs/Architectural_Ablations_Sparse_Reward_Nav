@@ -1,0 +1,6 @@
+phase,config_id,algo,seed,env_steps,eval_return_iqm,eval_return_mean,success_rate,collision_rate,mean_ep_len,wait_freq,sr_kitchen,sr_bedroom,sr_bathroom,len_kitchen,len_bedroom,len_bathroom,sample_eff_steps_90,n_eval_episodes,wandb_run_name
+p1,a2c,a2c,0,200000,-5.2,-5.2,0.0,1.0,2.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,-1,15,a2c_a2c_seed0
+p1,a2c,a2c,1,200000,-5.2,-5.2,0.0,1.0,2.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,-1,15,a2c_a2c_seed1
+p1,a2c,a2c,2,200000,-5.2,-5.2,0.0,1.0,2.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,-1,15,a2c_a2c_seed2
+p1,a2c,a2c,3,200000,-5.2,-5.2,0.0,1.0,2.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,-1,15,a2c_a2c_seed3
+p1,a2c,a2c,4,200000,-5.2,-5.2,0.0,1.0,2.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,-1,15,a2c_a2c_seed4
