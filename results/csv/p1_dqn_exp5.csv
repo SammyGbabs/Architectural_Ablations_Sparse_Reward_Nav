@@ -1,0 +1,11 @@
+phase,config_id,algo,seed,env_steps,eval_return_iqm,eval_return_mean,success_rate,collision_rate,mean_ep_len,wait_freq,sr_kitchen,sr_bedroom,sr_bathroom,len_kitchen,len_bedroom,len_bathroom,sample_eff_steps_90,n_eval_episodes,wandb_run_name
+p1,dqn_exp5,dqn,0,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,80000,15,dqn_dqn_exp5_seed0
+p1,dqn_exp5,dqn,1,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,70000,15,dqn_dqn_exp5_seed1
+p1,dqn_exp5,dqn,2,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,60000,15,dqn_dqn_exp5_seed2
+p1,dqn_exp5,dqn,3,200000,27.8,27.76,1.0,0.0,15.866667,0.0,1.0,1.0,1.0,11.0,16.0,22.0,20000,15,dqn_dqn_exp5_seed3
+p1,dqn_exp5,dqn,4,200000,27.8,27.64,1.0,0.0,13.8,0.0,1.0,1.0,1.0,11.0,11.0,25.0,20000,15,dqn_dqn_exp5_seed4
+p1,dqn_exp5,dqn,5,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,20000,15,dqn_dqn_exp5_seed5
+p1,dqn_exp5,dqn,6,200000,27.933333,28.08,1.0,0.0,14.266667,0.0,1.0,1.0,1.0,15.0,11.0,22.0,20000,15,dqn_dqn_exp5_seed6
+p1,dqn_exp5,dqn,7,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,20000,15,dqn_dqn_exp5_seed7
+p1,dqn_exp5,dqn,8,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,20000,15,dqn_dqn_exp5_seed8
+p1,dqn_exp5,dqn,9,200000,27.8,27.76,1.0,0.0,13.2,0.0,1.0,1.0,1.0,11.0,11.0,22.0,20000,15,dqn_dqn_exp5_seed9
