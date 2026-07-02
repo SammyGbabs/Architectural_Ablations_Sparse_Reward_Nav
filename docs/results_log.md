@@ -148,6 +148,31 @@
 
 **Caveats / known issues.** Single seed (0); local CPU; offline (no W&B). Gate scripts are in scratchpad (uncommitted); wrappers + `FLICKER_P` are committed. per-room SR from 15 eval episodes (target room drawn by the env RNG; not exactly 5/5/5). the p=0.7 200k row is NOT converged (mid-training) — the 500k row is its true (ceiling) plateau; read the two together. Any budget change must apply to ALL sweep cells for comparability. The difficulty model (Track 1) is closed-form/BFS + the single-seed gate observations; per-room success from 15 eval eps (target drawn by env RNG, not exactly 5/5/5), so per-room fractions are coarse.
 
+### [P2][gate] Rung 4 aliasing — drop region one-hot (single-seed, 500k)
+- **Date:** 2026-07-02
+- **Owner:** Samuel
+- **Status:** **Gating — single seed (0), local CPU, offline. NOT paper evidence.** Pre-registered in `docs/PHASE2_POMDP_PREREGISTRATION.md` Amendment 3 (Track-1-directed: test the aliasing mechanism, not more flicker).
+- **Obs:** Rung 4 = A-STRICT − region one-hot = **10-D** (proximity 5 + target one-hot 4 + remaining-time 1), `AAliasObs`. No flicker, no frame-stack — the aliasing lever in isolation.
+- **Protocol:** symmetric PPO `pi=[256,256]/vf=[256,256]`, Exp 1 verbatim, seed 0, **500k**.
+
+| metric | value |
+|---|---|
+| eval mean_reward | 27.04 |
+| eval IQM | **27.80** |
+| success_rate | **1.000** |
+| collision_rate | 0.00 |
+| ep_len | 14.8 |
+| per-room SR (k/bed/bath) | **1.00 / 1.00 / 1.00** |
+| sample-eff | **20k** |
+
+Convergence curve (IQM at 100k/200k/300k/400k/500k): **27.80 / 27.80 / 27.80 / 27.80 / 27.80** — flat at the full ceiling from the very first eval (20k). Converged by ~20k, indistinguishable from A-STRICT (27.80, 100%, ep_len 14.8).
+
+**Interpretation — matches the pre-committed "ceilings" outcome.** Dropping the region one-hot did **not** make the policy hard: symmetric PPO ceilings immediately (IQM 27.80, 100% on all three rooms, ep_len 14.8, converges ~20k — even *faster* than A-STRICT). Mechanistic read: the region one-hot was **redundant given the proximity sensors** — the 5-D proximity pattern (obstacle/wall in each direction) already de-aliases room / hallway / doorway cells, so removing the region block leaves the state just as recoverable. Track 1 correctly identified aliasing as the axis, but the actual de-aliaser on this map is **proximity**, not the region one-hot. **This completes the null across all three mechanisms tested: pure removal (A-MILD/A-STRICT), flicker+frame-stack (p=0.5/0.7/0.8), and targeted aliasing (region one-hot) — none produce a policy-hard-but-learnable regime on this task.** Per Amendment 3's interpretation table, this outcome → the null is characterized; write it up.
+
+**Held for read.** Decision = write up the null (recommended, well-supported) vs. one more explicit mechanism decision (proximity is the remaining de-aliaser — but perturbing it is a NEW mechanism and, per Amendment 3's stopping note, requires an explicit new decision, not an automatic escalation). Plus the stopping rule.
+
+**Caveats / known issues.** Single seed (0); local CPU; offline. Gate script in scratchpad (uncommitted); wrapper + tests committed. The immediate flat-at-ceiling curve is unusually clean — consistent with the region one-hot being redundant, but a multi-seed sweep would confirm if this were promoted (it will not be, given the ceiling).
+
 ---
 
 ## Phase 3 — Cross-environment (MiniGrid), Lipschitz, dynamic, sensor noise
