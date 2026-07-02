@@ -251,3 +251,67 @@ Rationale: a strict-subset ladder cleanly isolates "target-locating information
 removed" as the single manipulated variable; an added direction feature would
 re-introduce part of that signal and confound the dose–response. No runs had been
 launched at amendment time, so this is a pre-run design fix, not a post-hoc change.
+
+**Amendment 2 — 2026-07-02, after A-STRICT gate, before any sweep.**
+
+*Trigger:* The §5 gate on Rung 2 (A-STRICT, 13-D) returned a clean learnability
+PASS but revealed the manipulation was ineffective: symmetric PPO reached IQM
+27.80, 100% success, all rooms solved, converged by ~40k — near-optimal and
+essentially indistinguishable from the 16-D control (only ep_len rose, 14.8 vs
+~13). Removing global position (dims 9,10) and distance-to-target (dim 11) did
+**not** make the policy hard. With the symmetric actor already at the reward
+ceiling, there is no headroom for the inverted actor to open a gap, so the
+pre-registered 40-run sweep on rungs 0–2 would return a predictable, uninformative
+gap≈0 ("false null"). This is exactly the §1 amendment-hook contingency ("Rung 2
+still ties → add a Rung 3 that degrades further").
+
+*Diagnosis (literature-grounded):* Removing *static* features leaves the policy
+solvable **reactively** — proximity + region one-hot + target one-hot still
+suffice to pick a good action each step. The POMDP literature is consistent that
+policy-hardness (and the memory/capacity demand that goes with it) comes from
+**temporal hidden state that must be integrated over time**, not from static
+feature removal (Hausknecht & Stone 2015, flickering Pong; Flickering MuJoCo;
+POPGym — low-dim feature POMDPs "not difficult enough for modern deep RL" unless
+temporal structure is injected). Perceptual aliasing from dropping position was
+insufficient because the target/region cues still de-alias most states.
+
+*Confound guarded against:* Pure flickering makes the task **memory-hard**, which
+the literature attributes to *recurrence* (LSTM), not feedforward actor depth.
+Testing feedforward asymmetry (H1's knob) under pure flickering would test the
+wrong mechanism. **Frame-stacking (k=4)** converts temporal integration into a
+static-but-complex function over stacked history, representable by a feedforward
+MLP — making the *policy* a genuinely harder function (the regime H1 needs) while
+keeping value relatively smooth, and testing depth fairly. Frame-stack is the
+standard memoryless approach to POMDPs (Mnih 2015, 4-frame stack).
+
+*New rung (extends the ladder; strict-harder than Rung 2):*
+
+- **Rung 3a — A-STRICT + frame-stack k=4, NO flicker.** Obs = last 4 A-STRICT
+  (13-D) frames stacked = 52-D. Fully observable per-window; tests whether policy
+  *complexity alone* (function over history width) separates architectures.
+- **Rung 3b — A-STRICT + flicker(p=0.5) + frame-stack k=4.** Each step the 13-D
+  frame is fully revealed or fully zero-masked with p=0.5, then the last 4
+  (possibly-masked) frames are stacked = 52-D. True POMDP: the agent must
+  integrate across masked steps. This is the memory-hard regime and the natural
+  launch point for the Variant C (RecurrentPPO/LSTM) ablation later.
+
+*Gate before sweep:* Rung 3b is re-gated with the same single-seed symmetric
+check as A-STRICT. Target outcome is **hard-but-learnable** — symmetric PPO
+clearly sub-ceiling (guideline: success ≈ 40–75%, or eval reward well short of
+~27.8) but improving, indicating headroom for architecture to matter. If it
+floors (both fail) → flicker p too high / k too small; soften (lower p, raise k)
+and re-gate. If it ceilings (≈100% again) → still too easy; escalate (raise p, or
+aliasing) and re-gate. Only build the sweep from a gate in the hard-but-learnable
+band.
+
+*Sweep, once gate passes:* the decisive factorial moves to the hard regime:
+{symmetric, inverted} × {Rung 3a, Rung 3b} × 10 seeds = 40 runs, with Rung 2
+(13-D) and Rung 0 (16-D) as the easy-end anchors of the dose–response (reuse
+existing runs where available; Rung 2 symmetric gate seed can seed that cell).
+Primary endpoint unchanged: inverted−symmetric IQM gap, and whether it grows
+as the task enters the policy-hard regime.
+
+*Frame-stack note:* use SB3 `VecFrameStack(k=4)` over the A-STRICT-wrapped env,
+or an equivalent stacking wrapper; flicker wrapper applies the mask BEFORE
+stacking so masked frames enter the stack as zeros. observation_space rebuilt to
+the stacked shape. No change to env internals or reward.
