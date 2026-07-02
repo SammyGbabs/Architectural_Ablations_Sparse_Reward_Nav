@@ -21,6 +21,7 @@ from Environment.obs_variants import (
     RUNG3_DIM,
     AMildObs,
     AStrictObs,
+    AAliasObs,
     FlickerObs,
     FrameStackObs,
     OBS_VARIANTS,
@@ -36,6 +37,7 @@ SENTINEL = np.arange(BASE_OBS_DIM, dtype=np.float32)
 # Expected kept-dim indices per rung (pure removal, order preserved).
 MILD_KEEP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15]        # 14 dims (no 9,10)
 STRICT_KEEP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15]          # 13 dims (no 9,10,11)
+ALIAS_KEEP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 12]                       # 10 dims (no 9,10,11,13,14,15)
 
 
 @pytest.fixture
@@ -134,6 +136,43 @@ def test_step_obs_in_space(wrapper, dim):
 def test_registry_maps_rung_keys():
     assert OBS_VARIANTS["mild"] is AMildObs
     assert OBS_VARIANTS["strict"] is AStrictObs
+    assert OBS_VARIANTS["alias"] is AAliasObs
+
+
+# ---------------------------------------------------------------------------
+# Rung 4 — aliasing (A-STRICT minus region one-hot) -> 10-D
+# ---------------------------------------------------------------------------
+
+def test_aalias_space_is_10d():
+    env = AAliasObs(ResidentialGridEnv())
+    assert env.observation_space.shape == (10,)
+    assert env.observation_space.dtype == np.float32
+
+
+def test_rung4_builder_is_10d():
+    env = wrap_rung(ResidentialGridEnv(), "rung4")
+    obs, _ = env.reset(seed=0)
+    assert env.observation_space.shape == (10,)
+    assert obs.shape == (10,)
+
+
+def test_aalias_reindexes_drops_position_distance_region():
+    out = AAliasObs(ResidentialGridEnv()).observation(SENTINEL)
+    assert np.array_equal(out, SENTINEL[ALIAS_KEEP])
+    assert out.shape == (10,)
+    # position (9,10), distance (11) AND region one-hot (13,14,15) all gone.
+    for absent in (9.0, 10.0, 11.0, 13.0, 14.0, 15.0):
+        assert absent not in out
+    # proximity (0-4), target one-hot (5-8), remaining-time (12) retained, in order.
+    assert np.array_equal(out[:9], SENTINEL[:9])         # proximity + target
+    assert out[-1] == SENTINEL[12]                        # remaining-time last
+
+
+def test_aalias_reset_matches_base_with_dims_removed():
+    base_obs, _ = ResidentialGridEnv().reset(seed=7)
+    alias_obs, _ = AAliasObs(ResidentialGridEnv()).reset(seed=7)
+    assert np.allclose(alias_obs, np.delete(base_obs, [9, 10, 11, 13, 14, 15]))
+    assert alias_obs.shape == (10,)
 
 
 # ---------------------------------------------------------------------------

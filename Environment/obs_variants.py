@@ -51,6 +51,10 @@ IDX_REGION_ONEHOT = (13, 14, 15)     # in_room / in_hallway / in_doorway
 # Rung -> dims removed (pre-registered, pure removal).
 AMILD_REMOVE = IDX_POSITION                    # 16 - 2 -> 14-D
 ASTRICT_REMOVE = IDX_POSITION + IDX_DISTANCE   # 16 - 3 -> 13-D
+# Rung 4 (Amendment 3): A-STRICT and ALSO drop the region one-hot, so
+# in-room / in-hallway / in-doorway cells emit identical observations (perceptual
+# aliasing) and cannot be de-aliased from a single frame.
+ALIAS_REMOVE = ASTRICT_REMOVE + IDX_REGION_ONEHOT   # 16 - 6 -> 10-D
 
 
 class _RemoveDimsObs(gym.ObservationWrapper):
@@ -110,10 +114,23 @@ class AStrictObs(_RemoveDimsObs):
     remove_dims = ASTRICT_REMOVE
 
 
+class AAliasObs(_RemoveDimsObs):
+    """Rung 4 — ALIASING (10-D): A-STRICT and also drop the region one-hot
+    (dims 13-15), so in-room / in-hallway / in-doorway states are
+    indistinguishable from a single frame (Amendment 3, Track-1-directed).
+
+    Result: 10-D = proximity (5) + target one-hot (4) + remaining-time (1). The
+    optimal action must use trajectory history to disambiguate confusable states
+    — genuine policy-function complexity, not mere input deprivation."""
+
+    remove_dims = ALIAS_REMOVE
+
+
 # Convenience registry (rung key -> wrapper class) for the Phase 2 trainer/sweep.
 OBS_VARIANTS: dict[str, type[_RemoveDimsObs]] = {
     "mild": AMildObs,
     "strict": AStrictObs,
+    "alias": AAliasObs,
 }
 
 
@@ -239,6 +256,7 @@ def wrap_rung(env: gym.Env, rung: str, *, flicker_p: float = FLICKER_P,
         strict  -> A-STRICT (13-D)
         rung3a  -> A-STRICT -> frame-stack (52-D, no flicker)
         rung3b  -> A-STRICT -> flicker(p) -> frame-stack (52-D)
+        rung4   -> A-STRICT - region one-hot = aliasing (10-D)
     """
     if rung == "mild":
         return AMildObs(env)
@@ -248,8 +266,10 @@ def wrap_rung(env: gym.Env, rung: str, *, flicker_p: float = FLICKER_P,
         return FrameStackObs(AStrictObs(env), k=stack_k)
     if rung == "rung3b":
         return FrameStackObs(FlickerObs(AStrictObs(env), p=flicker_p), k=stack_k)
+    if rung == "rung4":
+        return AAliasObs(env)
     raise ValueError(f"unknown rung {rung!r}; expected one of "
-                     "mild/strict/rung3a/rung3b")
+                     "mild/strict/rung3a/rung3b/rung4")
 
 
 if __name__ == "__main__":  # pragma: no cover - smoke test
