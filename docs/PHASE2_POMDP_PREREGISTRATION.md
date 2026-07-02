@@ -7,7 +7,7 @@ changes require a dated amendment section at the bottom, not an in-place edit.
 **Repo:** `Architectural_Ablations_Sparse_Reward_Nav`
 **Depends on:** Phase 1 (committed, analysed). Env frozen except the obs-variant
 wrappers defined here.
-**Author:** Samuel Babalola. **Date registered:** _(fill on commit)_
+**Author:** Samuel Babalola. **Date registered:** 2026-07-02
 
 ---
 
@@ -57,34 +57,39 @@ The full Phase 1 observation. **No new runs needed** — reuse Exp 1 (symmetric)
 and Exp 4 (inverted), both already at 10 seeds. This is the top of the ladder
 (most information, easiest policy).
 
-### Rung 1 — A-MILD (14-D) — ≈ proposal §5.2 Variant A
+### Rung 1 — A-MILD (14-D) — pure removal (see Amendment 1)
 - **Remove** dims 9–10 (normalised global position). Agent loses global
   self-localisation.
-- **Add** a *relative target vector* (2-D): unit-normalised direction from agent
-  to target centroid — **direction only, magnitude clipped out**. (This is the
-  deliberate deviation from a naive reading of §5.2: we do NOT re-inject
-  magnitude, because a full relative vector would leak nearly as much as
-  distance-to-target and undo the degradation. Direction-only keeps the rung a
-  genuine step harder than control.)
-- **Retain** dim 11 (distance-to-target), dim 12, dims 13–15, proximity, target.
-- Result: **14-D**. Policy is harder (no global frame) but still has a coarse
-  "target is that-a-way + this-far" signal.
+- **Retain** dim 11 (distance-to-target), dim 12 (remaining-time), dims 13–15
+  (region one-hot), dims 0–4 (proximity), dims 5–8 (target one-hot).
+- **Nothing added.** This is a strict subset of the control observation.
+- Result: **14-D**. Policy is harder (no global frame) but the agent still knows
+  *how far* the target is (distance-to-target retained) — just not *where it is*.
 
-### Rung 2 — A-STRICT (13-D)
+### Rung 2 — A-STRICT (13-D) — pure removal
 - A-MILD, **and also remove** dim 11 (distance-to-target).
-- Result: **13-D** = proximity (5) + target one-hot (4) + relative *direction*
-  (2) + remaining-time (1) + region one-hot (1×3). Agent knows *which* room is
-  the goal and its immediate surroundings, but not where it is globally nor how
-  far the target is. It must **explore and build implicit layout sense** to
-  navigate — the sharp-decision-boundary regime the theory says needs actor depth.
+- Result: **13-D** = proximity (5) + target one-hot (4) + remaining-time (1) +
+  region one-hot (3). Agent knows *which* room is the goal and its immediate
+  surroundings, but not where it is globally nor how far the target is. It must
+  **explore and build implicit layout sense** to navigate — the
+  sharp-decision-boundary regime the theory says needs actor depth.
+
+> **Design note (why pure removal, not §5.2's relative vector):** §5.2's
+> Variant A adds a "relative target vector" as a standalone Reviewer-1 fix. For a
+> *dose–response ladder* we deliberately do NOT add it: adding a target-direction
+> feature partially re-introduces the very target-locating crutch the ladder
+> exists to remove, confounding the manipulated variable. A strict-subset ladder
+> (each rung = pure removal from the one above) is cleaner and more defensible:
+> "we removed global position, then also distance, and measured whether asymmetry
+> emerges as the target-locating signal disappears." See Amendment 1.
 
 **Ladder ordering (easy → hard):** Rung 0 (16-D) → Rung 1 (14-D) → Rung 2 (13-D).
 Monotone in "policy-relevant information removed."
 
 > Amendment hook: if Rung 2 still ties (both architectures solve it easily), the
-> pre-registered next step is **Option 2 / a Rung 3** that also perturbs proximity
-> or removes the relative-direction vector — added as a dated amendment, run
-> separately. We do NOT retro-edit this rung.
+> pre-registered next step is **a Rung 3** that degrades further — e.g. perturbs
+> or masks proximity sensors, or drops the region one-hot — added as a dated
+> amendment, run separately. We do NOT retro-edit this rung.
 
 ---
 
@@ -170,9 +175,10 @@ Same discipline as the Phase 1 spawn fix — cheap checks that prevent a wasted 
    emitted vector has the right dims and that removed dims are truly absent (not
    zeroed-but-present, which would still leak positional structure via constant
    inputs).
-2. **Sanity of the relative-direction feature:** confirm it's direction-only
-   (unit vector), magnitude not recoverable. If magnitude leaks, the rung isn't
-   strict — fix before running.
+2. **Strict-subset sanity:** confirm each rung's observation is exactly the
+   control minus the removed dims — no feature added, no residual encoding of
+   the removed dims (e.g. distance must not be reconstructable from any retained
+   dim). A-MILD = control − {9,10}; A-STRICT = control − {9,10,11}.
 3. **Symmetric smoke test on A-STRICT (1 seed):** does symmetric PPO still learn
    *anything* at 13-D within 200k? 
    - If it reaches a non-trivial success rate → task is learnable, proceed.
@@ -227,3 +233,21 @@ Only after gate passes: commit configs, launch the 40-run sweep front-loaded.
   `arch-ablations-sparse-reward`.
 - Wrappers live in `Environment/obs_variants.py` (new file; does not touch the
   frozen `custom_env.py`).
+
+---
+
+## Amendments
+
+**Amendment 1 — 2026-07-02, before any Phase 2 run.**
+The original draft described Rung 1 (A-MILD) as "drop global position (2-D) AND
+add a relative-direction vector (2-D)" while labelling it 14-D. These conflict:
+−2 +2 = net 16-D, not 14-D (and A-STRICT would be 15-D, not 13-D). Resolution:
+**drop the added direction vector; make the ladder pure removal.** Authoritative
+rungs are now **16-D → 14-D → 13-D** by strict subset:
+- A-MILD (14-D) = control − {dims 9,10} (global position). Keeps distance-to-target.
+- A-STRICT (13-D) = control − {dims 9,10,11} (global position + distance).
+
+Rationale: a strict-subset ladder cleanly isolates "target-locating information
+removed" as the single manipulated variable; an added direction feature would
+re-introduce part of that signal and confound the dose–response. No runs had been
+launched at amendment time, so this is a pre-run design fix, not a post-hoc change.
