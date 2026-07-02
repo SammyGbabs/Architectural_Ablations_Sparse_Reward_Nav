@@ -315,3 +315,51 @@ as the task enters the policy-hard regime.
 or an equivalent stacking wrapper; flicker wrapper applies the mask BEFORE
 stacking so masked frames enter the stack as zeros. observation_space rebuilt to
 the stacked shape. No change to env internals or reward.
+
+**Amendment 3 — 2026-07-02, after the full flicker calibration, before any sweep.**
+
+*Trigger:* The full flicker calibration (p ∈ {0.5, 0.7, 0.8}, k=4), each read **at
+convergence** (500k budget-bump where needed), yields **no hard-but-learnable
+regime**: p=0.5 ceilings fast (~60k), p=0.7 ceilings slow (converges ~240–340k to
+100% success on all three rooms, IQM ~26.2 — a flicker path-tax below the 27.8
+ceiling, not real difficulty), and p=0.8 fractures into a near/far give-up local
+optimum (kitchen+bathroom abandoned via timeout, bedroom solved). So flicker either
+delays the ceiling or induces pathology — it does not make the policy genuinely
+hard. Track 1's difficulty model (`Analysis/rung3_difficulty_model.py`, BFS +
+exact consecutive-mask survival) shows **per-room hardness is
+geometry/perceptual-aliasing-driven, not distance- or flicker-driven**: same-H
+rooms diverge (kitchen and bedroom both H=11, yet at p=0.8 kitchen 0.00 vs bedroom
+1.00 success), and no single p lands all three rooms in-band. The mechanism to test
+is therefore **aliasing**, not more flicker.
+
+*New rung — Rung 4 (ALIASING):* Over the A-STRICT (13-D) base, **drop the region
+one-hot (dims 13–15)** so that in-room / in-hallway / in-doorway states emit
+identical observations and cannot be de-aliased from a single frame. **No flicker,
+no frame-stack** — isolate the aliasing lever cleanly. Result: **10-D** = proximity
+(5) + target one-hot (4) + remaining-time (1), i.e. control − {9,10,11,13,14,15}.
+
+*Rationale:* this is the exact mechanism Track 1 identified. Removing the region
+one-hot makes confusable states (a corridor cell vs a doorway cell vs an in-room
+cell) emit the same observation, so the optimal action must depend on **trajectory
+history** to disambiguate — genuine policy-function complexity (the "policy-hard,
+value-easy" regime H1 needs), not mere input deprivation. Still a strict subset of
+control (pure removal), so it stays on the observability ladder.
+
+*Pre-committed interpretation (FIXED before the gate):*
+
+| Rung 4 gate outcome (symmetric) | Meaning / next step |
+|---|---|
+| **Hard-but-learnable** — all three rooms partial (~40–75%), non-degenerate, converges within budget | Aliasing produced the target regime → **proceed to the 40-run sweep at this setting** ({sym,inv} × {Rung 4, and a paired control} × 10 seeds). |
+| **Ceilings** (~100% success, ~27.8) | Even targeted aliasing doesn't make the policy hard → the **null is characterized across all mechanisms** (removal, flicker, aliasing) → write up the null. |
+| **Fractures** (near/far degeneracy like p=0.8) **or floors** (collision/timeout collapse) | Aliasing induces pathology, not clean hardness → **write up** (not a clean asymmetry test). |
+
+*Gate:* single-seed symmetric PPO (pi=[256,256]/vf=[256,256], Exp 1 verbatim,
+seed 0), **500k** budget (Track 2 showed this map can need >200k; use the same
+budget so a slow-learner is not misread as hard). Report the convergence curve
+(100k/200k/300k/400k/500k) + per-room breakdown; **per-room shape is the gate
+criterion**, not the aggregate.
+
+*Stopping note:* Rung 4 tests the mechanism Track 1 flagged as most promising. The
+cap decision (whether this is the final escalation) is **deferred until the gate
+result is read**; **no further mechanism is added without an explicit new
+decision** — this ladder is not open-ended.
