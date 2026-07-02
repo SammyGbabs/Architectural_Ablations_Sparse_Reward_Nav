@@ -157,6 +157,11 @@ FRAME_STACK_K = 4        # frames stacked (Amendment 2 / Mnih 2015)
 ASTRICT_DIM = BASE_OBS_DIM - len(ASTRICT_REMOVE)   # 13
 RUNG3_DIM = ASTRICT_DIM * FRAME_STACK_K            # 52
 
+# Rung 5 (Amendment 4): flip each binary proximity bit with probability q. The
+# proximity block is the first 5 dims of BOTH the base and the A-STRICT vector.
+PROX_NOISE_Q = 0.3       # per-bit flip probability (Amendment 4)
+PROX_IDX = (0, 1, 2, 3, 4)
+
 
 class FlickerObs(gym.Wrapper):
     """
@@ -245,8 +250,58 @@ class FrameStackObs(gym.Wrapper):
         return self._stacked(), reward, terminated, truncated, info
 
 
+class AProxNoiseObs(gym.Wrapper):
+    """
+    Rung 5 — PROXIMITY NOISE (Amendment 4). Over a 13-D A-STRICT observation,
+    flip each of the 5 (binary) proximity bits independently with probability q,
+    every emitted observation (reset and step). Dimensionality is unchanged.
+
+    Degrades STATE IDENTIFICATION (the agent can no longer cleanly resolve
+    cell-type) while leaving enough signal to mostly avoid walls — noise, not
+    masking, so collision-floor ("can't see walls to avoid dying") is separable
+    from clean policy-hardness (report collision_rate). Reproducible via a
+    dedicated per-episode Generator seeded from the reset seed (as with
+    FlickerObs), so it does not perturb the env's own RNG stream.
+    """
+
+    def __init__(self, env: gym.Env, q: float = PROX_NOISE_Q,
+                 prox_idx: tuple[int, ...] = PROX_IDX) -> None:
+        super().__init__(env)
+        base = env.observation_space
+        if not isinstance(base, spaces.Box) or len(base.shape) != 1:
+            raise ValueError(f"AProxNoiseObs expects a 1-D Box, got {base!r}")
+        if not 0.0 <= q <= 1.0:
+            raise ValueError(f"proximity noise q must be in [0,1], got {q}")
+        if max(prox_idx) >= base.shape[0]:
+            raise ValueError(f"prox_idx {prox_idx} out of range for {base!r}")
+        self.q = float(q)
+        self._prox = np.asarray(prox_idx, dtype=np.intp)
+        self._rng: np.random.Generator | None = None
+        # observation_space unchanged: proximity is binary in [0,1], a flip
+        # (1 - v) stays in [0,1].
+
+    def _corrupt(self, obs: np.ndarray) -> np.ndarray:
+        out = np.array(obs, dtype=self.observation_space.dtype, copy=True)
+        flips = self._rng.random(self._prox.size) < self.q
+        idx = self._prox[flips]
+        out[idx] = 1.0 - out[idx]          # binary bit-flip on selected proximity dims
+        return out
+
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
+        obs, info = self.env.reset(seed=seed, options=options)
+        if seed is not None:
+            self._rng = np.random.default_rng(seed)
+        elif self._rng is None:
+            self._rng = np.random.default_rng()
+        return self._corrupt(obs), info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        return self._corrupt(obs), reward, terminated, truncated, info
+
+
 def wrap_rung(env: gym.Env, rung: str, *, flicker_p: float = FLICKER_P,
-              stack_k: int = FRAME_STACK_K) -> gym.Env:
+              stack_k: int = FRAME_STACK_K, prox_q: float = PROX_NOISE_Q) -> gym.Env:
     """
     Compose the observation-wrapper chain for a ladder rung onto ``env`` (a raw
     ``ResidentialGridEnv``). Central place so the gate and the sweep build the
@@ -257,6 +312,7 @@ def wrap_rung(env: gym.Env, rung: str, *, flicker_p: float = FLICKER_P,
         rung3a  -> A-STRICT -> frame-stack (52-D, no flicker)
         rung3b  -> A-STRICT -> flicker(p) -> frame-stack (52-D)
         rung4   -> A-STRICT - region one-hot = aliasing (10-D)
+        rung5   -> A-STRICT + proximity-noise(q) (13-D)
     """
     if rung == "mild":
         return AMildObs(env)
@@ -268,8 +324,10 @@ def wrap_rung(env: gym.Env, rung: str, *, flicker_p: float = FLICKER_P,
         return FrameStackObs(FlickerObs(AStrictObs(env), p=flicker_p), k=stack_k)
     if rung == "rung4":
         return AAliasObs(env)
+    if rung == "rung5":
+        return AProxNoiseObs(AStrictObs(env), q=prox_q)
     raise ValueError(f"unknown rung {rung!r}; expected one of "
-                     "mild/strict/rung3a/rung3b/rung4")
+                     "mild/strict/rung3a/rung3b/rung4/rung5")
 
 
 if __name__ == "__main__":  # pragma: no cover - smoke test

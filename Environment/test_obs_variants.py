@@ -22,6 +22,7 @@ from Environment.obs_variants import (
     AMildObs,
     AStrictObs,
     AAliasObs,
+    AProxNoiseObs,
     FlickerObs,
     FrameStackObs,
     OBS_VARIANTS,
@@ -173,6 +174,69 @@ def test_aalias_reset_matches_base_with_dims_removed():
     alias_obs, _ = AAliasObs(ResidentialGridEnv()).reset(seed=7)
     assert np.allclose(alias_obs, np.delete(base_obs, [9, 10, 11, 13, 14, 15]))
     assert alias_obs.shape == (10,)
+
+
+# ---------------------------------------------------------------------------
+# Rung 5 — proximity noise (over A-STRICT 13-D; dims unchanged)
+# ---------------------------------------------------------------------------
+
+def _noisy_clean_pair(q, seed=4):
+    noisy = AProxNoiseObs(AStrictObs(ResidentialGridEnv()), q=q)
+    clean = AStrictObs(ResidentialGridEnv())
+    no, _ = noisy.reset(seed=seed)
+    co, _ = clean.reset(seed=seed)
+    pairs = [(no, co)]
+    for _ in range(30):
+        no, _, nt, _, _ = noisy.step(WAIT)
+        co, _, ct, _, _ = clean.step(WAIT)
+        pairs.append((no, co))
+        if nt or ct:
+            break
+    return noisy, pairs
+
+
+def test_proxnoise_shape_unchanged_13d():
+    env = AProxNoiseObs(AStrictObs(ResidentialGridEnv()), q=0.3)
+    assert env.observation_space.shape == (13,)
+    obs, _ = env.reset(seed=0)
+    assert obs.shape == (13,) and env.observation_space.contains(obs)
+
+
+def test_rung5_builder_is_13d():
+    env = wrap_rung(ResidentialGridEnv(), "rung5")
+    obs, _ = env.reset(seed=0)
+    assert env.observation_space.shape == (13,) and obs.shape == (13,)
+
+
+def test_proxnoise_hits_only_proximity_dims():
+    _, pairs = _noisy_clean_pair(q=0.5)
+    for no, co in pairs:
+        # non-proximity dims (5..12) are untouched...
+        assert np.allclose(no[5:], co[5:])
+        # ...and each proximity dim is either unchanged or a clean bit-flip.
+        for i in range(5):
+            assert np.isclose(no[i], co[i]) or np.isclose(no[i], 1.0 - co[i])
+
+
+def test_proxnoise_q0_is_identity_q1_flips_all():
+    _, pairs0 = _noisy_clean_pair(q=0.0)
+    for no, co in pairs0:
+        assert np.allclose(no, co)                       # q=0 -> no change
+    _, pairs1 = _noisy_clean_pair(q=1.0)
+    for no, co in pairs1:
+        assert np.allclose(no[:5], 1.0 - co[:5])         # q=1 -> every prox bit flipped
+        assert np.allclose(no[5:], co[5:])
+
+
+def test_proxnoise_seeded_determinism():
+    a = AProxNoiseObs(AStrictObs(ResidentialGridEnv()), q=0.3)
+    b = AProxNoiseObs(AStrictObs(ResidentialGridEnv()), q=0.3)
+    oa, _ = a.reset(seed=11); ob, _ = b.reset(seed=11)
+    assert np.allclose(oa, ob)
+    for _ in range(30):
+        oa, _, _, _, _ = a.step(WAIT)
+        ob, _, _, _, _ = b.step(WAIT)
+        assert np.allclose(oa, ob)
 
 
 # ---------------------------------------------------------------------------
