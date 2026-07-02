@@ -29,6 +29,8 @@ Usage::
 
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
@@ -115,6 +117,139 @@ OBS_VARIANTS: dict[str, type[_RemoveDimsObs]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Rung 3 (Amendment 2): temporal difficulty — flicker + frame-stack
+# ---------------------------------------------------------------------------
+# Rung 2 (A-STRICT) proved learnable but too easy: removing *static* features
+# still leaves a reactively-solvable policy (proximity + region + target one-hot
+# suffice per step). Amendment 2 adds temporal hidden state — the source of
+# genuine policy-hardness in the POMDP literature — via:
+#   * FLICKER (Hausknecht & Stone 2015): each step, with prob p, the frame is
+#     fully zero-masked, forcing integration across time.
+#   * FRAME-STACK k=4 (Mnih 2015): stack the last k emitted frames, turning
+#     temporal integration into a static-but-complex function a feedforward MLP
+#     can represent — so we test actor DEPTH (H1's knob), not recurrence.
+# Rung 3a = A-STRICT -> frame-stack (52-D, no flicker).
+# Rung 3b = A-STRICT -> flicker(p) -> frame-stack (52-D). Mask is applied BEFORE
+# stacking, so masked frames enter the stack as zeros (pre-reg §Amendment 2).
+
+FLICKER_P = 0.5          # per-step full-obscure probability (Amendment 2)
+FRAME_STACK_K = 4        # frames stacked (Amendment 2 / Mnih 2015)
+ASTRICT_DIM = BASE_OBS_DIM - len(ASTRICT_REMOVE)   # 13
+RUNG3_DIM = ASTRICT_DIM * FRAME_STACK_K            # 52
+
+
+class FlickerObs(gym.Wrapper):
+    """
+    Flickering-POMDP wrapper (Hausknecht & Stone 2015). On each ``step`` the
+    emitted observation is, with probability ``p``, replaced by an all-zeros
+    vector of the same shape (full obscure); otherwise passed through unchanged.
+    The mask decision uses a **dedicated Generator seeded from the episode's
+    reset seed**, so the flicker sequence is reproducible per seed *without*
+    consuming (and thus perturbing) the env's own RNG stream (which drives target
+    -room sampling). The reset frame is never masked — the agent always sees a
+    true first observation. ``info['flicker_masked']`` flags each masked step.
+
+    Applied to A-STRICT and placed BEFORE frame-stacking, so masked frames enter
+    the stack as zeros (pre-reg Amendment 2).
+    """
+
+    def __init__(self, env: gym.Env, p: float = FLICKER_P) -> None:
+        super().__init__(env)
+        if not 0.0 <= p <= 1.0:
+            raise ValueError(f"flicker probability p must be in [0,1], got {p}")
+        self.p = float(p)
+        self._rng: np.random.Generator | None = None
+        # observation_space is unchanged (same shape; zeros are within [0,1]).
+
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
+        obs, info = self.env.reset(seed=seed, options=options)
+        # Seed the flicker stream deterministically from the run seed; if reset is
+        # called without a seed (SB3 auto-reset between episodes), keep advancing
+        # the existing stream so the whole run stays reproducible from its seed.
+        if seed is not None:
+            self._rng = np.random.default_rng(seed)
+        elif self._rng is None:
+            self._rng = np.random.default_rng()
+        return obs, info                       # first frame is never flickered
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        masked = bool(self._rng.random() < self.p)
+        if masked:
+            obs = np.zeros_like(obs)
+        info = {**info, "flicker_masked": masked}
+        return obs, reward, terminated, truncated, info
+
+
+class FrameStackObs(gym.Wrapper):
+    """
+    Stack the last ``k`` emitted frames into a single flat observation
+    (``k * base_dim``), the standard memoryless approach to POMDPs (Mnih 2015).
+    A manual deque-based wrapper (rather than SB3 ``VecFrameStack``) so it acts at
+    the single-env level, composes with the flicker wrapper, is directly unit-
+    testable, and yields a flat (k*d,) Box. At reset the stack is padded with
+    ``k`` copies of the first observation (chosen over zeros so an episode does
+    not open with spurious all-zero history). Concatenation order is oldest ->
+    newest.
+    """
+
+    def __init__(self, env: gym.Env, k: int = FRAME_STACK_K) -> None:
+        super().__init__(env)
+        base = env.observation_space
+        if not isinstance(base, spaces.Box) or len(base.shape) != 1:
+            raise ValueError(f"FrameStackObs expects a 1-D Box, got {base!r}")
+        self.k = int(k)
+        self._d = int(base.shape[0])
+        self.observation_space = spaces.Box(
+            low=np.tile(np.asarray(base.low), self.k),
+            high=np.tile(np.asarray(base.high), self.k),
+            shape=(self._d * self.k,),
+            dtype=base.dtype,
+        )
+        self._frames: deque = deque(maxlen=self.k)
+
+    def _stacked(self) -> np.ndarray:
+        return np.concatenate(list(self._frames)).astype(
+            self.observation_space.dtype, copy=False)
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        self._frames.clear()
+        for _ in range(self.k):
+            self._frames.append(np.asarray(obs))   # pad with the first frame
+        return self._stacked(), info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        self._frames.append(np.asarray(obs))
+        return self._stacked(), reward, terminated, truncated, info
+
+
+def wrap_rung(env: gym.Env, rung: str, *, flicker_p: float = FLICKER_P,
+              stack_k: int = FRAME_STACK_K) -> gym.Env:
+    """
+    Compose the observation-wrapper chain for a ladder rung onto ``env`` (a raw
+    ``ResidentialGridEnv``). Central place so the gate and the sweep build the
+    exact same observation.
+
+        mild    -> A-MILD (14-D)
+        strict  -> A-STRICT (13-D)
+        rung3a  -> A-STRICT -> frame-stack (52-D, no flicker)
+        rung3b  -> A-STRICT -> flicker(p) -> frame-stack (52-D)
+    """
+    if rung == "mild":
+        return AMildObs(env)
+    if rung == "strict":
+        return AStrictObs(env)
+    if rung == "rung3a":
+        return FrameStackObs(AStrictObs(env), k=stack_k)
+    if rung == "rung3b":
+        return FrameStackObs(FlickerObs(AStrictObs(env), p=flicker_p), k=stack_k)
+    raise ValueError(f"unknown rung {rung!r}; expected one of "
+                     "mild/strict/rung3a/rung3b")
+
+
 if __name__ == "__main__":  # pragma: no cover - smoke test
     from Environment.custom_env import ResidentialGridEnv
 
@@ -125,4 +260,9 @@ if __name__ == "__main__":  # pragma: no cover - smoke test
         obs, _ = env.reset(seed=0)
         print(f"  {name:6s} -> {env.observation_space.shape}  "
               f"reset obs shape {obs.shape}  removed dims {wrapper.remove_dims}")
+    for rung in ("rung3a", "rung3b"):
+        env = wrap_rung(ResidentialGridEnv(), rung)
+        obs, _ = env.reset(seed=0)
+        print(f"  {rung:6s} -> {env.observation_space.shape}  reset obs shape "
+              f"{obs.shape}")
     print("[OK] obs_variants smoke test complete.")
