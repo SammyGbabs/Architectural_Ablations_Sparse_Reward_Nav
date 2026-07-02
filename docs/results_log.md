@@ -126,9 +126,23 @@
 
 **Hypotheses under test:** H1 (capacity-controlled), H2, H3.
 
-**Status:** *(blocked on Phase 1 gate)*
+**Status:** POMDP observability ladder (pre-reg `docs/PHASE2_POMDP_PREREGISTRATION.md`) in the pre-sweep gating stage. No sweep launched.
 
-*(Entries land here.)*
+### [P2][gate] Rung 3 difficulty calibration — flicker+frame-stack (single-seed gates)
+- **Date:** 2026-07-02
+- **Owner:** Samuel
+- **Status:** **Gating / calibration — single seed (0), local CPU, NOT paper evidence and NOT logged to W&B.** These are §5-gate learnability checks that set the Rung 3 flicker parameter before the 40-run sweep. Per pre-reg Amendment 2, target band = **hard-but-learnable (≈40–75% success, sub-ceiling, still improving)**.
+- **Protocol (identical across rows):** symmetric PPO `pi=[256,256]/vf=[256,256]`, Phase 1 Exp 1 hyperparameters verbatim, 200k env-steps, seed 0, Phase 1 `RichEvalCallback` (15 eval eps). Only the obs wrapper differs. Wrappers: `Environment/obs_variants.py`.
+
+| Rung / obs | dim | eval mean_R | eval IQM | success | collision | ep_len | per-room SR (k/bed/bath) | sample-eff | converged? |
+|---|---|---|---|---|---|---|---|---|---|
+| Rung 2 A-STRICT (anchor) | 13 | 27.44 | 27.80 | 1.000 | 0.00 | 14.8 | 1.00 / 1.00 / 1.00 | 40k | plateau ~40k |
+| Rung 3b flicker **p=0.5**, k=4 | 52 | 27.25 | 27.67 | 1.000 | 0.00 | 13.7 | 1.00 / 1.00 / 1.00 | 60k | plateau ~60k |
+| Rung 3b flicker **p=0.8**, k=4 | 52 | 6.43 | 7.44 | **0.533** | 0.00 | 75.9 | **0.00 / 1.00 / 0.00** | 100k | plateau (low), not climbing |
+
+**Interpretation.** The difficulty knob is `P(all k stacked frames masked) = p^k`. At **p=0.5, k=4** that is `0.5⁴ ≈ 6%` — the agent almost always has a recent true frame, so frame-stacking neutralises the flicker and symmetric PPO still ceilings (100% success, IQM 27.67, plateaued by 60k), essentially indistinguishable from A-STRICT → **too easy** (Amendment 2 "escalate" branch). Escalating to **p=0.8, k=4** (`0.8⁴ ≈ 41%` all-masked) drops symmetric PPO hard: eval IQM 27.8 → **7.44**, success 100% → **53.3%**, ep_len 14.8 → 75.9 (failures are timeouts, collision rate stays 0). The headline 53.3% success sits **inside the 40–75% target band**, BUT two caveats qualify it: (1) the eval curve is **flat, not still climbing** (IQM plateaus at ~7.4 by 20k with only sporadic blips to 12 — so 200k is not the limiter, and a budget bump is not obviously indicated); (2) the **per-room breakdown is degenerate** — the agent solves *bedroom* (nearest, 11 steps) 100% but *kitchen* and *bathroom* 0%, i.e. it learned a "commit to the near room" sub-policy rather than genuine partial navigation. So p=0.8 is borderline: numerically hard-but-learnable, but the plateau + per-room pattern suggest it may be a stuck local optimum rather than clean slow learning. **Held for read** — decision on whether p=0.8 passes the gate (proceed to sweep), needs a budget bump, or needs a different escalation (e.g. p between 0.5 and 0.8, or the aliasing option) is pending, along with the stopping rule.
+
+**Caveats / known issues.** Single seed (0); local CPU; offline (no W&B). Gate scripts are in scratchpad (uncommitted); wrappers + `FLICKER_P` are committed. per-room SR from 15 eval episodes (target room drawn by the env RNG; not exactly 5/5/5).
 
 ---
 
