@@ -363,3 +363,37 @@ criterion**, not the aggregate.
 cap decision (whether this is the final escalation) is **deferred until the gate
 result is read**; **no further mechanism is added without an explicit new
 decision** — this ladder is not open-ended.
+
+**Amendment 4 — 2026-07-02, after the Rung 4 gate, by explicit new-mechanism decision.**
+
+*Trigger:* Rung 4 (drop region one-hot) **ceilinged immediately** (IQM 27.80, all
+three rooms 100% by 20k — faster than A-STRICT). Cause: the 5-D **proximity**
+sensors already de-alias room / hallway / doorway cells, so the region one-hot was
+redundant. Proximity is therefore the **last remaining de-aliaser** and the only
+untested observation lever on this map. Per the Rung-4 stopping note this probe is
+an **explicit, approved new-mechanism decision**, not an automatic escalation.
+
+*New rung — Rung 5 (PROXIMITY NOISE):* over the A-STRICT (13-D) base, corrupt the
+**5 proximity sensors only** with noise; everything else intact. Proximity is a
+**binary** obstacle/off-grid pattern, so noise = **each proximity bit independently
+flipped with probability q** (start **q=0.3**). Dimensionality unchanged (13-D).
+Reproducible via a dedicated per-episode seeded RNG (as with the flicker wrapper).
+
+*Rationale / why noise not masking:* corrupting (not deleting) proximity degrades
+**state identification** — the agent can no longer cleanly resolve cell-type, so the
+optimal action must integrate history to disambiguate (policy-hardness) — while
+still leaving enough signal to mostly avoid walls. Full masking would conflate
+"policy unrepresentable" with "agent literally can't see walls to avoid dying"; noise
+separates those. Collision-rate is the tell (see interpretation).
+
+*Pre-committed interpretation (FIXED before the gate):*
+
+| Rung 5 gate outcome (symmetric) | Meaning / next step |
+|---|---|
+| **Hard-but-learnable** — all rooms partial (~40–75%), converges, non-degenerate | The regime exists (first time in the whole ladder) → **proceed to the sweep**. |
+| **Ceilings** (~100%, ~27.8) | Proximity robust to noise; policy stays easy → **observation axis fully exhausted → writeup**. |
+| **Collision-floor** — high collision_rate, short ep_len, low success | Proximity's role is wall-avoidance; degrading it **kills the agent** rather than making the policy hard → observation axis exhausted → **writeup**. Report collision_rate prominently to distinguish this from a clean hardness floor. |
+
+*Cap note:* **Rung 5 is the FINAL observation-degradation rung on the 20×20 map.**
+Any further test is a different task (Phase 3) under a separate pre-registration —
+not an extension of this one. The writeup follows Rung 5 regardless of its outcome.
