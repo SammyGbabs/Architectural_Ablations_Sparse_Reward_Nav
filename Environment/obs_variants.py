@@ -133,9 +133,9 @@ OBS_VARIANTS: dict[str, type[_RemoveDimsObs]] = {
 # Rung 3b = A-STRICT -> flicker(p) -> frame-stack (52-D). Mask is applied BEFORE
 # stacking, so masked frames enter the stack as zeros (pre-reg §Amendment 2).
 
-FLICKER_P = 0.8          # per-step full-obscure probability (Amendment 2; escalated
-                         # 0.5 -> 0.8 after the p=0.5 gate ceilinged: p^k all-masked
-                         # rises 0.5^4=6% -> 0.8^4=41%, see docs/results_log.md)
+FLICKER_P = 0.7          # per-step full-obscure probability (Amendment 2). Calibrated
+                         # p=0.5 (p^k=6%, ceilinged) -> 0.8 (41%, degenerate near/far
+                         # split) -> 0.7 (p^k~24%, between). See docs/results_log.md.
 FRAME_STACK_K = 4        # frames stacked (Amendment 2 / Mnih 2015)
 ASTRICT_DIM = BASE_OBS_DIM - len(ASTRICT_REMOVE)   # 13
 RUNG3_DIM = ASTRICT_DIM * FRAME_STACK_K            # 52
