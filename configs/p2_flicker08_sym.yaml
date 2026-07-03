@@ -1,0 +1,40 @@
+# =============================================================================
+# configs/p2_flicker08_sym.yaml
+# Phase 2 CLAIM-GRADE cell — FLICKER p=0.8 + frame-stack k=4 (52-D), SYMMETRIC, 10 seeds.
+# DISTINCT claim: aggressive flicker -> a near/far give-up local optimum (fracture),
+# NOT a clean ceiling. Multi-seed shows the fracture isn't one unlucky seed.
+# Report per-room SR + collision/timeout split per seed (the fracture signature).
+# Single-seed gate: 53% success, per-room 0.00/1.00/0.00, plateaued flat by 20k.
+# Hyperparameters VERBATIM from ppo_exp1.yaml. Only obs_rung + flicker_p differ.
+# =============================================================================
+
+config_id: p2_flicker08_sym
+algo: ppo
+policy: MlpPolicy
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: ReLU
+ortho_init: true
+
+lr: 0.0002
+gamma: 0.990
+batch_size: 256
+n_steps: 2048
+n_epochs: 10
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.020
+
+n_seeds: 10
+env_steps: 200000          # p=0.8 plateaued FLAT (degenerate) by 20k single-seed;
+                           # the fracture is not slow learning -> 200k suffices
+
+eval_freq: 20000
+eval_episodes: 15
+
+# --- Phase 2 observation wrapper ---
+obs_rung: rung3b           # A-STRICT -> flicker(p) -> frame-stack(k) -> 52-D
+flicker_p: 0.8
+stack_k: 4

@@ -1,0 +1,40 @@
+# =============================================================================
+# configs/p2_flicker07_sym.yaml
+# Phase 2 CLAIM-GRADE cell — FLICKER p=0.7 + frame-stack k=4 (52-D), SYMMETRIC, 10 seeds.
+# The strongest "flicker ceilings SLOWLY" case and the COMPUTE SINK (500k x 10).
+# Making the hardest-looking flicker claim-grade is the convincing one: single-seed
+# 500k re-gate converged ~240-340k to 100% on all rooms (IQM ~26.2 plateau) -> slow-easy,
+# NOT hard-but-learnable. Needs the full 500k so a slow-learner isn't misread as hard.
+# *** HOLD: do NOT launch this cell until Samuel confirms (most expensive). ***
+# Hyperparameters VERBATIM from ppo_exp1.yaml. Only obs_rung + flicker_p + budget differ.
+# =============================================================================
+
+config_id: p2_flicker07_sym
+algo: ppo
+policy: MlpPolicy
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: ReLU
+ortho_init: true
+
+lr: 0.0002
+gamma: 0.990
+batch_size: 256
+n_steps: 2048
+n_epochs: 10
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.020
+
+n_seeds: 10
+env_steps: 500000          # p=0.7 still climbing at 200k; converges ~240-340k -> need 500k
+
+eval_freq: 20000
+eval_episodes: 15
+
+# --- Phase 2 observation wrapper ---
+obs_rung: rung3b           # A-STRICT -> flicker(p) -> frame-stack(k) -> 52-D
+flicker_p: 0.7
+stack_k: 4

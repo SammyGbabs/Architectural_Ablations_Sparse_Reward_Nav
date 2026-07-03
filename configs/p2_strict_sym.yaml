@@ -1,0 +1,36 @@
+# =============================================================================
+# configs/p2_strict_sym.yaml
+# Phase 2 CLAIM-GRADE cell — A-STRICT (13-D), SYMMETRIC arch, 10 seeds.
+# Symmetric-only: establishes the base-of-ladder CEILING for a standard agent —
+# a statement about the TASK, not an architecture comparison.
+# Hyperparameters VERBATIM from configs/ppo_exp1.yaml (Exp 1). Only obs_rung +
+# (shared) budget differ. Single-seed gate ceilinged at IQM 27.80 (converged ~40k).
+# =============================================================================
+
+config_id: p2_strict_sym
+algo: ppo
+policy: MlpPolicy
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: ReLU
+ortho_init: true
+
+lr: 0.0002
+gamma: 0.990
+batch_size: 256
+n_steps: 2048
+n_epochs: 10
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.020
+
+n_seeds: 10
+env_steps: 200000          # A-STRICT converged ~40k single-seed; 200k = ample margin
+
+eval_freq: 20000
+eval_episodes: 15
+
+# --- Phase 2 observation wrapper (Environment/obs_variants.wrap_rung) ---
+obs_rung: strict           # A-STRICT: control - {dims 9,10,11} -> 13-D
