@@ -173,6 +173,31 @@ Convergence curve (IQM at 100k/200k/300k/400k/500k): **27.80 / 27.80 / 27.80 / 2
 
 **Caveats / known issues.** Single seed (0); local CPU; offline. Gate script in scratchpad (uncommitted); wrapper + tests committed. The immediate flat-at-ceiling curve is unusually clean — consistent with the region one-hot being redundant, but a multi-seed sweep would confirm if this were promoted (it will not be, given the ceiling).
 
+### [P2][gate] Rung 5 proximity-noise — final degradation rung (single-seed, 500k)
+- **Date:** 2026-07-03
+- **Owner:** Samuel
+- **Status:** **Gating — single seed (0), local CPU, offline. NOT paper evidence.** Pre-registered in `docs/PHASE2_POMDP_PREREGISTRATION.md` Amendment 4 (explicit new-mechanism decision; the FINAL observation-degradation rung on this map).
+- **Obs:** Rung 5 = A-STRICT (13-D) with the 5 binary proximity bits each flipped with **q=0.3** every step (`AProxNoiseObs`). Dim unchanged (13-D). No masking — degrades state-ID, not wall-visibility.
+- **Protocol:** symmetric PPO `pi=[256,256]/vf=[256,256]`, Exp 1 verbatim, seed 0, **500k**.
+
+| metric | value |
+|---|---|
+| eval mean_reward | 26.87 |
+| eval IQM | **27.80** (full ceiling) |
+| success_rate | **1.000** |
+| **collision_rate (final)** | **0.000** |
+| ep_len | 15.7 |
+| per-room SR (k/bed/bath) | **1.00 / 1.00 / 1.00** |
+| sample-eff | 40k |
+
+Convergence curve (IQM | success | k/bed/bath | **coll** @ 100k/200k/300k/400k/500k): **27.80 / 27.80 / 27.80 / 27.80 / 27.80**, success 1.00 throughout, per-room 1/1/1, **collision 0.00 at every checkpoint from 60k on**. Converges to full ceiling by ~80k. (Early-learning transient only: at 40k collision briefly hit 0.20 / bathroom 0.00, fully resolved by 80k.)
+
+**Interpretation — matches the pre-committed "ceilings" outcome, and NOT the collision-floor.** q=0.3 proximity noise does not make the policy hard: symmetric PPO reaches the full ceiling (IQM 27.80, 100% on all three rooms, ep_len 15.7 — a tiny noise tax vs A-STRICT's 14.8) and, decisively, **converges to 0 collisions** — the transient 40k collision blip is learned away, so this is a clean ceiling, not a wall-avoidance death-floor. Mechanistic read: on a **fixed, memorisable map**, the agent navigates from the target one-hot + implicit trajectory memory and does **not need reliable proximity** to avoid walls, so corrupting proximity is absorbed. This is the same root cause as every other rung — the task is solvable without the degraded signal.
+
+**This EXHAUSTS the observation-degradation axis (pre-registered cap, Amendment 4).** Across the full ladder — pure removal (A-MILD 14-D, A-STRICT 13-D), flicker+frame-stack (p=0.5/0.7/0.8, k=4), targeted aliasing (drop region one-hot, 10-D), and proximity noise (q=0.3, 13-D) — **no mechanism produces a policy-hard-but-learnable regime**: each either ceilings (usually fast; p=0.7 slow) or fractures (p=0.8). The pre-registered null is now complete across all mechanisms. **Next: writeup scoping** (the cap note commits us to the writeup regardless of this result).
+
+**Caveats / known issues.** Single seed (0); local CPU; offline. Gate script in scratchpad (uncommitted); wrapper + tests committed. Final collision_rate is 0, but note the 40k transient spike (0.20) — reported so the "not a collision-floor" call is auditable.
+
 ---
 
 ## Phase 3 — Cross-environment (MiniGrid), Lipschitz, dynamic, sensor noise
