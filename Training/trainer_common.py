@@ -486,10 +486,16 @@ def run_training(
         # Under --output-dir (Drive on Colab), NOT repo-relative, so it survives
         # disconnects. finalize_run_csv mkdir's the parent and upserts by
         # (config_id, seed), so re-runs/resumes overwrite rather than duplicate.
-        csv_path = csv_dir / f"{PHASE}_{cfg['config_id']}.csv"
+        # Phase prefix is config-overridable (cfg['phase'], default PHASE="p1");
+        # skip it when config_id already carries it, so a p2_* config lands as
+        # p2_*.csv (not p2_p2_*.csv) while p1 configs stay p1_*.csv.
+        phase = str(cfg.get("phase", PHASE))
+        cid = cfg["config_id"]
+        stem = cid if cid.startswith(f"{phase}_") else f"{phase}_{cid}"
+        csv_path = csv_dir / f"{stem}.csv"
         finalize_run_csv(
             csv_path,
-            phase=PHASE,
+            phase=phase,
             config_id=cfg["config_id"],
             algo=cfg["algo"],
             seed=spec.seed,

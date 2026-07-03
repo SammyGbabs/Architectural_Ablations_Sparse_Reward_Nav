@@ -10,6 +10,7 @@
 # =============================================================================
 
 config_id: p2_flicker07_sym
+phase: p2                  # per-seed CSV -> <out>/csv/p2_flicker07_sym.csv
 algo: ppo
 policy: MlpPolicy
 
