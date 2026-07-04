@@ -1,0 +1,11 @@
+phase,config_id,algo,seed,env_steps,eval_return_iqm,eval_return_mean,success_rate,collision_rate,mean_ep_len,wait_freq,sr_kitchen,sr_bedroom,sr_bathroom,len_kitchen,len_bedroom,len_bathroom,sample_eff_steps_90,n_eval_episodes,wandb_run_name
+p2,p2_proxnoise_sym,ppo,0,200704,27.8,26.866667,1.0,0.0,15.666667,0.0,1.0,1.0,1.0,11.0,11.0,34.333333,40000,15,ppo_p2_proxnoise_sym_seed0
+p2,p2_proxnoise_sym,ppo,1,200704,27.8,26.893333,1.0,0.0,15.533333,0.0,1.0,1.0,1.0,11.0,11.0,33.666667,40000,15,ppo_p2_proxnoise_sym_seed1
+p2,p2_proxnoise_sym,ppo,2,200704,27.8,27.133333,1.0,0.0,14.333333,0.0,1.0,1.0,1.0,11.0,11.0,27.666667,60000,15,ppo_p2_proxnoise_sym_seed2
+p2,p2_proxnoise_sym,ppo,3,200704,27.8,26.066667,1.0,0.0,19.666667,0.0,1.0,1.0,1.0,11.0,11.0,54.333333,40000,15,ppo_p2_proxnoise_sym_seed3
+p2,p2_proxnoise_sym,ppo,4,200704,27.8,26.853333,1.0,0.0,15.733333,0.0,1.0,1.0,1.0,11.0,11.0,34.666667,40000,15,ppo_p2_proxnoise_sym_seed4
+p2,p2_proxnoise_sym,ppo,5,200704,27.8,26.746667,1.0,0.0,16.266667,0.003598,1.0,1.0,1.0,11.0,11.0,37.333333,40000,15,ppo_p2_proxnoise_sym_seed5
+p2,p2_proxnoise_sym,ppo,6,200704,27.8,26.986667,1.0,0.0,15.4,0.0,1.0,1.0,1.0,11.0,11.0,33.0,60000,15,ppo_p2_proxnoise_sym_seed6
+p2,p2_proxnoise_sym,ppo,7,200704,27.8,25.92,1.0,0.0,20.4,0.003787,1.0,1.0,1.0,11.0,11.0,58.0,40000,15,ppo_p2_proxnoise_sym_seed7
+p2,p2_proxnoise_sym,ppo,8,200704,27.8,26.88,1.0,0.0,15.6,0.0,1.0,1.0,1.0,11.0,11.0,34.0,40000,15,ppo_p2_proxnoise_sym_seed8
+p2,p2_proxnoise_sym,ppo,9,200704,27.8,26.44,1.0,0.0,17.8,0.0,1.0,1.0,1.0,11.0,11.0,45.0,40000,15,ppo_p2_proxnoise_sym_seed9
