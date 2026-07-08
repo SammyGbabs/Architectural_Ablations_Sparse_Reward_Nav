@@ -119,8 +119,9 @@ Three observations are decisive. **First, the ceilings are real ceilings, not sl
 learners or wall-avoidance floors:** the four ceiling cells reach 100% success on all
 three rooms with tight CIs, prox-noise does so at a collision rate of 0.00 (the noise
 is absorbed, not lethal), and even the hardest *learnable* flicker (`p=0.7`) reaches
-the ceiling given budget — 9/10 seeds at full success, the ~1.6 gap below 27.8 being a
-path-length tax from occasional blackouts, not sub-ceiling difficulty. **Second, the
+the ceiling given budget — 9/10 seeds at full success (the tenth, seed 9, plateaus
+partway with bathroom SR 0.33; the IQM trims it, but we note it exists), the ~1.6 gap
+below 27.8 being a path-length tax from occasional blackouts, not sub-ceiling difficulty. **Second, the
 one cell that leaves the ceiling does not become hard-but-learnable — it fractures:**
 at `p=0.8`, IQM collapses to 8.95 and the failure is a *systematic give-up*, robust
 across all 10 seeds — **kitchen is abandoned in 10/10 seeds and bedroom solved in
@@ -131,3 +132,158 @@ aliasing, and sensor noise — the pre-registered cap on single-map observation
 degradation — no rung meets the precondition. On this task, the H1 asymmetry
 hypothesis is **untestable**: the null of §4 is a fact about the task, not (on this
 evidence) about the hypothesis.
+
+---
+
+## 6. The protocol: testing whether a task can test an architecture hypothesis
+
+The navigation study is one instance of a problem that recurs whenever architectures
+are compared empirically. An architecture hypothesis almost always has the form
+*"architectural property `A` improves performance because it suits some structure `S`
+of the problem"* — inverted actor–critic asymmetry suits a hard-to-represent policy;
+convolution suits spatial locality; attention suits long-range dependency; extra depth
+suits compositional structure. Such a hypothesis can only be tested on a task that
+actually *contains* `S`. If the chosen benchmark lacks `S`, then `A` has nothing to act
+on and the hypothesis predicts **no** effect *by construction* — so a null result is
+uninformative, and, just as dangerously, a positive result on one seed is unfalsifiable
+noise. Before claiming a task confirms or refutes such a hypothesis, one should check
+that the task is *able* to test it. We distil our study into a reusable procedure for
+that check. It is stated below in task- and hypothesis-agnostic terms; §§4–5 are the
+worked example that instantiates it.
+
+> **Protocol — can this task test this architecture hypothesis?**
+> *Given a hypothesis "architectural property `A` helps because it suits problem
+> structure `S`":*
+>
+> 1. **State the precondition.** Write down `S` explicitly — the property the task must
+>    have for `A` to matter — and the observable signature of `S` being present versus
+>    absent. If you cannot name `S`, you cannot test the hypothesis.
+> 2. **Design a manipulation ladder.** Construct a graded family of task variants that
+>    monotonically vary the presence or degree of `S`, holding everything else fixed
+>    (same reward, dynamics, budget, optimiser). Each rung moves the task toward
+>    satisfying the precondition.
+> 3. **Gate each rung for learnability — single seed, cheap.** Confirm a *standard*
+>    (baseline) agent can still learn each rung before spending statistical compute.
+>    Discard rungs where the baseline floors: an unlearnable rung looks "hard" but tests
+>    nothing (a floor effect, not the target regime).
+> 4. **Promote load-bearing rungs to multi-seed — claim-grade.** For the rungs a
+>    conclusion rests on, run enough seeds for stratified-bootstrap confidence intervals
+>    (report IQM + CI, not single-seed point estimates). Stage compute if needed
+>    (decision-grade first, archival-grade before publication).
+> 5. **Read the ladder.** If some rung is **hard-but-learnable** — precondition present,
+>    baseline sub-ceiling but improving — the task *can* test the hypothesis; run the
+>    architecture comparison **on that rung**. If **no** rung reaches the precondition in
+>    a learnable regime, the task *cannot* test the hypothesis. Report that, with the
+>    mechanism that explains why the manipulation never induced `S`.
+
+Two design choices in this procedure are themselves part of the methodological
+contribution, not incidental lab habit. **Pre-registration** of the ladder, the
+hypotheses, and — critically — a per-outcome *interpretation table* fixed before any
+run, prevents the search from silently degenerating into architecture-fishing: with the
+readings committed in advance, "we tried variants until one favoured our architecture"
+is structurally impossible, and every escalation is a dated amendment with a frozen
+meaning. **The gate/multi-seed split** is what makes exhaustive laddering affordable: a
+single-seed learnability gate is one training run, so many candidate rungs can be
+screened for the price of one claim-grade cell, and expensive seeds are spent only where
+a conclusion actually rests. Together they turn "our architecture idea didn't win" into
+a falsifiable, cheap-to-run diagnostic about the benchmark.
+
+The test of whether this protocol is genuinely reusable is that its five steps never
+mention navigation, observations, or reinforcement learning: a reader studying
+width-versus-depth on a regression benchmark, or attention-versus-convolution on a
+sequence task, instantiates `S` with their own structure (input frequency content;
+dependency range) and follows the identical procedure. Our study fixes `A` = inverted
+actor–critic asymmetry, `S` = a policy that is hard to represent while the value stays
+smooth, the ladder = graded observation degradation, and finds no rung satisfies the
+precondition — the concrete shape of a general negative outcome.
+
+## 7. Why this task resisted every manipulation
+
+That no rung induced the precondition is not a failure of effort — four qualitatively
+different mechanisms were tried and capped by pre-registration. It follows from three
+concrete, mutually reinforcing properties of the task, each of which we can point to in
+the data.
+
+**Observation redundancy.** The state is over-determined by the observation: different
+features encode the same distinction, so removing one leaves it recoverable from
+another. The sharpest instance is the aliasing rung. We dropped the region one-hot
+(in-room / hallway / doorway) expecting to make those cell-types confusable — yet the
+agent ceilinged *immediately* (IQM 27.17, faster than the un-aliased A-STRICT). The
+reason is that the five proximity sensors already encode the local wall pattern, which
+distinguishes a doorway (opening on two sides) from a corridor from an open room —
+**proximity, not the region one-hot, is the true de-aliaser**, and it was retained. To
+alias the state one must degrade *every* redundant encoding of a distinction at once;
+degrading any single one is absorbed.
+
+**Reactive optimality.** A near-optimal action is a function of the *current* frame, not
+of history. This is why frame-stacking neutralises flicker up to `p=0.7`: with `k=4`
+stacked frames the probability that all four are simultaneously masked is small, so a
+recent true frame is almost always available, and a policy that maps the most-recent
+unmasked frame to an action suffices. Only when masking is aggressive enough that long
+all-blank runs become common (`p=0.8`) does the reactive strategy break — and then the
+policy does not gracefully degrade into a harder function, it *gives up* (the systematic
+kitchen-abandonment fracture), because nothing in the task rewards the partial,
+history-integrating competence a fair test would need.
+
+**A memorisable fixed map.** The single, static layout means the agent never needs a
+general navigation policy — it can encode *this* house. This is why proximity noise
+(`q=0.3`) is shrugged off with collisions at 0.00: on a memorised map the agent routes
+from the target one-hot and its own trajectory, and does not depend on reliable
+proximity readings to avoid walls, so corrupting them changes little. Degrading an input
+the optimal policy has learned not to rely on cannot make the policy harder.
+
+Together these give a single diagnosis: information can be removed or corrupted
+extensively before the *optimal policy* becomes a genuinely harder function, because the
+task affords a cheap solution (reactive, memorised, redundantly cued) throughout. Value
+stays as easy as policy, and asymmetry has no wedge.
+
+## 8. What a task would need to test this hypothesis
+
+The null is generative: the same analysis that shows this task cannot test the hypothesis
+specifies what a task that *could* would look like. We state it as a property list a
+future benchmark can be built against — the natural Phase 3 target — rather than as a
+vague call for "harder tasks."
+
+- **Genuine, unroutable partial observability.** Hidden state that (i) cannot be
+  recovered from any single observation *and* (ii) cannot be memorised away — i.e.
+  procedurally generated or changing layouts, so no fixed-map shortcut exists and the
+  optimal policy must integrate history on every episode. (This directly negates the
+  "reactive optimality" and "memorisable map" escapes of §7.)
+- **Non-redundant observation.** Each policy-relevant distinction is encoded once, so a
+  targeted removal actually removes it. (Negates "observation redundancy".)
+- **A longer horizon with real credit assignment.** Enough temporal depth that the
+  optimal policy must compose sub-decisions, so representing it is a compositional
+  problem rather than a one-step lookup.
+- **A policy that is a sharp function even under full information.** Ideally the hardness
+  is intrinsic to the optimal *mapping* (high-frequency, many decision boundaries), not
+  merely induced by hiding information — so that policy capacity is taxed while value
+  can remain comparatively smooth, which is exactly the asymmetry the hypothesis is
+  about.
+
+A task meeting this specification would place the precondition inside a learnable regime,
+and the architecture comparison of §4 could be run where it is meaningful. Whether the
+inverted-asymmetry advantage then appears is an open empirical question this paper does
+not answer and does not prejudge.
+
+## 9. Discussion
+
+The transferable lesson is a discipline, not a result: **before claiming a task confirms
+or refutes an architecture hypothesis, test whether the task is able to falsify it.** A
+cheap, pre-registered manipulation ladder with single-seed learnability gates makes this
+check affordable, and its outcome — which rung, if any, is hard-but-learnable — tells you
+where (or whether) to spend a claim-grade comparison. Pre-registration is doing real work
+here: it converts an open-ended "try architectures until one wins" into a bounded,
+falsifiable procedure whose negative outcomes are as informative as its positive ones.
+
+We are careful about the scope of our negative result. We have shown that **this task —
+and, by the mechanism of §7, static single-map gridworld navigation with a redundant,
+low-dimensional observation — cannot test the inverted-asymmetry hypothesis**, because no
+degradation of its observation places the precondition in a learnable regime. We have
+**not** shown that inverted actor–critic asymmetry fails to help in reinforcement
+learning generally; the hypothesis may well hold on a task of the kind §8 specifies, and
+nothing here bears on that. The contribution is precisely scoped on purpose: a rigorous
+demonstration that a specific, widely-used *style* of task cannot test a specific
+architectural hypothesis, together with a reusable protocol for detecting this failure
+mode before it is mistaken for evidence either way. A single-seed positive result on such
+a task — the literature's starting point here — is exactly what the protocol is designed
+to catch.
