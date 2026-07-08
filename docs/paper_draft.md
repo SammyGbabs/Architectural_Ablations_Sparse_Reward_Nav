@@ -5,8 +5,117 @@ framing follow `docs/paper_outline.md`. **Provenance tags** ([P1-MS], [P2-MS],
 [GATE]) mark every evidence source per the outline's provenance table; **`⟦…⟧`**
 marks a number still to be filled from committed data (never invent one).
 
-Status: §4 drafted (Phase 1). §5 held until cell 5 (p=0.7) lands — its figures and
-the flicker-ceiling row complete first.
+Status: §1–§9 drafted. Two ⟦…⟧ placeholders — the 12.5× sample-efficiency
+re-measurement and the Colab archival verification — remain flagged for the
+pre-submission pass; nothing in the argument depends on their exact digits.
+
+---
+
+## 1. Abstract
+
+Empirical architecture comparisons carry an implicit assumption: that the benchmark can
+actually *test* the hypothesis — that the task contains the structure the architecture
+is meant to exploit. When it does not, a null is uninformative and a single-seed positive
+is unfalsifiable noise, yet both are routinely reported as evidence. We give a
+**pre-registered protocol for deciding whether a task can test an architecture hypothesis
+at all**, before trusting any comparison run on it: state the structural precondition the
+hypothesis requires; build a graded manipulation ladder that targets it; gate each rung
+for learnability with a single seed; promote only load-bearing rungs to multi-seed,
+claim-grade evaluation; and attribute any induced hardness to the precondition rather than
+to a confound before comparing architectures. We instantiate the protocol on a reported
+deep-RL result — that an *inverted* actor–critic asymmetry (a deeper actor than critic)
+improves sparse-reward indoor navigation. Under multi-seed evaluation the single-seed
+advantage disappears (IQM ⟦27.56⟧ vs ⟦27.66⟧, overlapping 95% CIs,
+P(inverted > symmetric) = ⟦0.25⟧; the reported ⟦12.5×⟧ sample-efficiency gap likewise
+re-measured), and a pre-registered observability ladder — four degradation mechanisms,
+each a dated amendment — shows *why*: no manipulation places the task in the regime the
+hypothesis needs. Every rung either **ceilings** (the optimal policy stays easy to
+represent) or **fractures** into a give-up local optimum (hard, but not in the way the
+hypothesis specifies). We report this as a worked *negative outcome of the protocol*, not
+as evidence against asymmetry: this task class cannot arbitrate the hypothesis, which may
+still hold on a task meeting the specification we derive. The contribution is the reusable
+check — and the finding that a widely-used style of benchmark silently fails it.
+
+## 2. Introduction
+
+Deep reinforcement learning is notoriously sensitive to random seeds: the same algorithm
+on the same environment can yield qualitatively different conclusions across seeds, and
+much apparent progress has not survived multi-seed re-evaluation [Henderson et al.;
+Agarwal et al.]. This fragility is usually framed as a *statistical* problem — report
+interquartile means and confidence intervals, not single runs. It is also, less
+obviously, a *design* problem: even with impeccable statistics, a comparison is only
+meaningful if the task can express the effect being measured.
+
+Our entry point is a concrete instance. A prior study reports that an **inverted
+actor–critic asymmetry** — giving the policy network more capacity than the value network
+(`π=[512,256,128]`, `v=[256,128]`) — outperforms a symmetric baseline (`π=v=[256,256]`) at
+matched budget on a sparse-reward indoor-navigation task, from a single seed. The claim is
+appealing and mechanistic ("policy-hard, value-easy": actor depth should help when the
+optimal policy is a harder function than the optimal value). It is also exactly the kind of
+single-seed architectural claim the reproducibility literature warns about.
+
+Re-examining it exposes a problem more general than one benchmark. An architecture
+hypothesis almost always asserts that *architectural property `A` helps because it suits
+some structure `S` of the problem* — asymmetry suits a hard-to-represent policy, convolution
+suits spatial locality, attention suits long-range dependency. Such a hypothesis is only
+testable on a task that actually contains `S`. If the benchmark lacks `S`, then `A` has
+nothing to act on: the hypothesis predicts no effect *by construction*, a null says nothing
+about the hypothesis, and any single-seed win is noise. The failure is silent — nothing in
+a standard train/evaluate loop flags that the task could never have shown the effect either
+way. We argue this is a common and under-recognised way for architecture claims to be both
+made and refuted on tasks that cannot support them.
+
+This paper makes two contributions. **First, a reusable protocol** (§6) for determining
+whether a task can test a given architecture hypothesis: name the precondition `S`, build a
+manipulation ladder that targets it, gate rungs for learnability cheaply, spend seeds only
+on load-bearing rungs, and — before comparing architectures — confirm any induced hardness
+is attributable to `S` and not a confound. Pre-registration and the gate/multi-seed split
+are integral to it, not incidental. **Second, a worked negative outcome**: applying the
+protocol to the navigation task, we show the reported asymmetry advantage does not survive
+multiple seeds (§4) and, via a pre-registered observability ladder of four degradation
+mechanisms (§5), that *no* manipulation of the task induces the required regime — it stays
+reactively, redundantly, memorably easy, or fractures the wrong way (§7). We are careful
+throughout that this is a statement about *the task*, not the hypothesis: we show this task
+class cannot test inverted asymmetry, and specify (§8) what a task that could would need —
+not that asymmetry fails in RL.
+
+## 3. Related work
+
+**Reproducibility and evaluation in deep RL.** Henderson et al.'s *Deep Reinforcement
+Learning that Matters* documented how seed variance, implementation details, and
+under-powered comparisons produce non-reproducible conclusions; Agarwal et al. (*rliable*)
+provide the statistical remedy we adopt — interquartile mean with stratified-bootstrap
+confidence intervals and performance profiles, over many seeds. Our work builds on this but
+targets a complementary failure mode: a comparison can be statistically impeccable and still
+meaningless if the task cannot express the hypothesised effect. Good statistics answer
+"is the measured difference real?"; our protocol answers the prior question, "*could* this
+task have shown the difference at all?".
+
+**Difficulty of partially-observed tasks.** The manipulation ladder is grounded in the
+POMDP-difficulty literature. Flickering observations (Hausknecht & Stone) and benchmark
+suites such as POPGym establish that *static* low-dimensional feature removal is often not
+enough to make a task hard for modern deep RL, and that difficulty tends to require
+temporal hidden state that must be integrated over time; frame-stacking (Mnih et al.) is the
+standard memoryless response. We use exactly these levers — removal, flicker + frame-stack,
+aliasing, sensor noise — and find, consistent with that literature, that they fail to make
+*this* task's policy hard, for reasons we trace mechanistically.
+
+**Architectural asymmetry and actor–critic capacity.** The hypothesis under test sits in a
+line of work on how to allocate capacity between policy and value networks and on
+architectural inductive biases more broadly. Our aim is not to adjudicate this hypothesis in
+general — we take no position on whether inverted asymmetry helps on suitable tasks — but to
+show that a specific, common style of task cannot arbitrate it, and to give the tools to
+recognise such tasks.
+
+**Pre-registration in machine learning.** Pre-registration — fixing hypotheses, design, and
+analysis before seeing results — is standard in the experimental sciences but rare in ML,
+where iterative tuning against a test signal is the norm. We treat it as a first-class part
+of the methodological contribution rather than a compliance step: freezing the ladder and a
+per-outcome interpretation table before any run is precisely what prevents an exhaustive
+manipulation search from degenerating into architecture-fishing, and makes a negative
+outcome as credible as a positive one. To our knowledge this discipline is under-used for
+architecture-comparison studies specifically, which is where single-seed claims are most
+tempting and least checked.
 
 ---
 
@@ -170,11 +279,24 @@ worked example that instantiates it.
 >    conclusion rests on, run enough seeds for stratified-bootstrap confidence intervals
 >    (report IQM + CI, not single-seed point estimates). Stage compute if needed
 >    (decision-grade first, archival-grade before publication).
-> 5. **Read the ladder.** If some rung is **hard-but-learnable** — precondition present,
->    baseline sub-ceiling but improving — the task *can* test the hypothesis; run the
->    architecture comparison **on that rung**. If **no** rung reaches the precondition in
->    a learnable regime, the task *cannot* test the hypothesis. Report that, with the
+> 5. **Read the ladder — and attribute the hardness.** If some rung is
+>    **hard-but-learnable** — baseline sub-ceiling but improving — do not stop at "it's
+>    hard." Verify the hardness is attributable to `S` *specifically*, and not to a
+>    confounding difficulty source (an optimisation pathology such as a give-up local
+>    optimum, or raw sensory deprivation that starves the agent rather than complicating
+>    the policy). A rung can be hard the *wrong* way: if it is, an architecture gap
+>    measured there reflects "which architecture escapes the pathology more often," not
+>    "`A` suits `S`," and the comparison silently tests the wrong thing. Only once the
+>    hardness is `S`-attributable does the rung qualify — run the architecture comparison
+>    **on that rung**. If **no** rung reaches the precondition in a learnable,
+>    `S`-attributable regime, the task *cannot* test the hypothesis. Report that, with the
 >    mechanism that explains why the manipulation never induced `S`.
+>
+>    *(Our own p=0.8 flicker rung is the cautionary example: it is hard-but-not-ceiling,
+>    yet it became hard the wrong way — a systematic give-up local optimum, not a
+>    hard-to-represent policy — so an architecture comparison there would have measured
+>    local-optimum escape, not `S`. It is disqualified by this guard, not by its
+>    difficulty.)*
 
 Two design choices in this procedure are themselves part of the methodological
 contribution, not incidental lab habit. **Pre-registration** of the ladder, the
@@ -195,7 +317,7 @@ sequence task, instantiates `S` with their own structure (input frequency conten
 dependency range) and follows the identical procedure. Our study fixes `A` = inverted
 actor–critic asymmetry, `S` = a policy that is hard to represent while the value stays
 smooth, the ladder = graded observation degradation, and finds no rung satisfies the
-precondition — the concrete shape of a general negative outcome.
+precondition — the concrete shape of one negative outcome the protocol can return.
 
 ## 7. Why this task resisted every manipulation
 
