@@ -65,12 +65,69 @@ what §6 abstracts into a general protocol.
 
 ---
 
-## 5. Phase 2 — the pre-registered observability ladder  *(HELD — drafting after cell 5)*
+## 5. Phase 2 — a pre-registered observability ladder shows the task cannot test H1
 
-*Numbers and figures ready:* the four claim-grade cells (A-STRICT, aliasing,
-prox-noise ceilings; p=0.8 fracture) with `p2_ladder_iqm.png` and
-`p2_flicker08_perseed.png` [P2-MS]; the difficulty model / calibration trail [GATE].
-*Waiting on:* the p=0.7 flicker-ceiling cell (cell 5) to complete the claim-grade
-flicker dose-response before this section is written, so the "flicker ceilings (even
-at its hardest) vs fractures" contrast is drawn against multi-seed data on both
-sides. Prose to follow.
+§4 leaves a specific question: is the null a fact about the *hypothesis* or about the
+*task*? To answer it we ask whether **any** degradation of the observation can put the
+task into the regime the hypothesis needs — a policy that is genuinely hard to
+represent while the value function stays smooth — without simply making the task
+unlearnable. We answer this with a **pre-registered** experiment (the design,
+hypotheses, falsification criteria, and per-outcome interpretations were frozen
+before any run; the dated amendment trail records every subsequent design decision).
+The independent variable is a *ladder* of observation wrappers over the frozen
+environment, monotone in "policy-relevant information removed"; the primary endpoint
+is the inverted−symmetric IQM gap. Because a floor effect (task simply unlearnable)
+would masquerade as the target regime, each rung is first **single-seed-gated for
+learnability** (cheap) before any load-bearing cell is promoted to 10 seeds (rliable).
+This section reports the claim-grade cells; the single-seed gates and the difficulty
+model are design/calibration steps [GATE], never cited as results.
+
+**Four degradation mechanisms.** Guided by the POMDP-difficulty literature (static
+feature removal is often insufficient; temporal hidden state is what makes policies
+hard [Hausknecht & Stone; POPGym]), we test, over the frozen env: (i) **pure removal**
+— drop global position (A-MILD, 14-D) and additionally distance-to-target (A-STRICT,
+13-D); (ii) **flicker + frame-stack** — each step the frame is fully masked with
+probability `p`, then the last `k=4` frames are stacked (52-D); (iii) **targeted
+aliasing** — drop the region one-hot so room/hallway/doorway cells are indistinguishable
+from a single frame (10-D); (iv) **proximity noise** — flip each binary proximity bit
+with probability `q=0.3` (13-D), degrading state-identification while leaving walls
+mostly avoidable.
+
+**A calibration aside (why flicker rate is not the difficulty knob).** [GATE] A
+ground-truth BFS on the map gives optimal path lengths `H` = {kitchen 11, bedroom 11,
+bathroom 22}, and an exact consecutive-mask survival model predicts blackout
+probability rising with `H`. The observed per-room difficulty **contradicts** this:
+under flicker the two equidistant rooms diverge sharply (at `p=0.8`, kitchen is
+abandoned while bedroom is solved), so difficulty is **geometry/approach-dependent,
+not distance-dependent** — no single flicker rate places all rooms in a partial band.
+This directed the aliasing rung and is reported as calibration, not as a result
+(figures `p2_rung3_blackout_vs_p.png`, `p2_rung3_observed_vs_predicted.png`).
+
+**Claim-grade results.** [P2-MS] For a *standard* (symmetric) PPO agent — Exp 1
+hyperparameters verbatim, 10 seeds, rliable IQM + 95% CI — every cell either ceilings
+or fractures; none is hard-but-learnable (Table 2; `p2_ladder_iqm.png`):
+
+| Cell | obs | steps | IQM eval return (95% CI) | per-room SR (k/bed/bath) | outcome |
+|---|---|---|---|---|---|
+| A-STRICT | 13-D | 200k | 27.24 [27.21, 27.27] | 1.00/1.00/1.00 | ceiling |
+| Aliasing | 10-D | 200k | 27.17 [27.04, 27.37] | 1.00/1.00/1.00 | ceiling |
+| Prox-noise q=0.3 | 13-D | 200k | 26.78 [26.41, 26.93] | 1.00/1.00/1.00 | ceiling |
+| Flicker p=0.7 | 52-D | 500k | 26.14 [25.42, 26.32] | 1.00/1.00/1.00 | ceiling (slow) |
+| Flicker p=0.8 | 52-D | 200k | 8.95 [6.29, 13.01] | 0.00/1.00/0.33 | **fracture** |
+
+Three observations are decisive. **First, the ceilings are real ceilings, not slow
+learners or wall-avoidance floors:** the four ceiling cells reach 100% success on all
+three rooms with tight CIs, prox-noise does so at a collision rate of 0.00 (the noise
+is absorbed, not lethal), and even the hardest *learnable* flicker (`p=0.7`) reaches
+the ceiling given budget — 9/10 seeds at full success, the ~1.6 gap below 27.8 being a
+path-length tax from occasional blackouts, not sub-ceiling difficulty. **Second, the
+one cell that leaves the ceiling does not become hard-but-learnable — it fractures:**
+at `p=0.8`, IQM collapses to 8.95 and the failure is a *systematic give-up*, robust
+across all 10 seeds — **kitchen is abandoned in 10/10 seeds and bedroom solved in
+10/10** (`p2_flicker08_perseed.png`), with failures being timeouts, not collisions.
+That is a degenerate local optimum, not the graceful partial competence a fair
+architecture test needs. **Third, this exhausts the axis:** across removal, flicker,
+aliasing, and sensor noise — the pre-registered cap on single-map observation
+degradation — no rung meets the precondition. On this task, the H1 asymmetry
+hypothesis is **untestable**: the null of §4 is a fact about the task, not (on this
+evidence) about the hypothesis.
