@@ -30,8 +30,9 @@ improves sparse-reward indoor navigation. Under multi-seed evaluation the single
 advantage disappears (IQM 27.56 vs 27.66, overlapping 95% CIs,
 P(inverted > symmetric) = 0.25), and the reported 12.5× PPO sample-efficiency advantage
 does not survive a defined, step-based, multi-seed measurement: in environment-steps to
-90% of asymptotic return the two algorithms are statistically indistinguishable (DQN:PPO
-ratio 0.55×, 95% CI [0.40, 2.02], spanning parity). A pre-registered observability ladder
+90% of asymptotic return the two algorithms' distributions overlap entirely — no PPO
+configuration is faster than the DQN family, and the one outlier is a *slow* PPO
+configuration. A pre-registered observability ladder
 — four degradation mechanisms, each a dated amendment — then shows *why* the asymmetry
 question cannot be settled here: no manipulation places the task in the regime the
 hypothesis needs. Every rung either **ceilings** (the optimal policy stays easy to
@@ -43,46 +44,53 @@ check — and the finding that a widely-used style of benchmark silently fails i
 
 ## 2. Introduction
 
-Deep reinforcement learning is notoriously sensitive to random seeds: the same algorithm
-on the same environment can yield qualitatively different conclusions across seeds, and
-much apparent progress has not survived multi-seed re-evaluation [Henderson et al.;
-Agarwal et al.]. This fragility is usually framed as a *statistical* problem — report
-interquartile means and confidence intervals, not single runs. It is also, less
-obviously, a *design* problem: even with impeccable statistics, a comparison is only
-meaningful if the task can express the effect being measured.
+The reproducibility literature has taught deep reinforcement learning to distrust a single
+run. Seed variance can flip a conclusion, and much reported progress has not survived
+multi-seed re-evaluation [Henderson et al.; Agarwal et al.]; the accepted remedy is to
+report interquartile means with stratified-bootstrap confidence intervals rather than point
+estimates. This closes one failure mode — mistaking noise for signal — but leaves a prior
+one untouched. A comparison can be statistically impeccable and still meaningless: if the
+benchmark does not contain the structure the architecture is meant to exploit, multi-seed
+statistics measure, with great precision, an effect the task was never capable of showing.
+And the two cases are observationally identical from inside the experiment — a null on a
+task where the effect is genuinely absent and a null on a task that could never have
+expressed it produce the same numbers. rliable can tell you a comparison is statistically
+sound; it cannot tell you it is meaningful. Pre-registration can tell you that you did not
+fish for the result; it cannot tell you the pond contains fish. That gap — between a sound
+measurement and a meaningful one — is the subject of this paper.
 
-Our entry point is a concrete instance. A prior study reports that an **inverted
-actor–critic asymmetry** — giving the policy network more capacity than the value network
-(`π=[512,256,128]`, `v=[256,128]`) — outperforms a symmetric baseline (`π=v=[256,256]`) at
-matched budget on a sparse-reward indoor-navigation task, from a single seed. The claim is
-appealing and mechanistic ("policy-hard, value-easy": actor depth should help when the
-optimal policy is a harder function than the optimal value). It is also exactly the kind of
-single-seed architectural claim the reproducibility literature warns about.
+The gap has a common structure. An architecture hypothesis almost always asserts that
+*architectural property `A` helps because it suits some structure `S` of the problem* —
+inverted actor–critic asymmetry suits a policy that is hard to represent, convolution suits
+spatial locality, attention suits long-range dependency. Such a hypothesis is only testable
+on a task that actually contains `S`. Where `S` is absent, `A` has nothing to act on: the
+hypothesis predicts no effect *by construction*, so a null is uninformative and any
+single-seed win is noise dressed as evidence. Nothing in a standard train-and-evaluate loop
+flags this — the task quietly fails to pose the question, and the experiment quietly answers
+a different one.
 
-Re-examining it exposes a problem more general than one benchmark. An architecture
-hypothesis almost always asserts that *architectural property `A` helps because it suits
-some structure `S` of the problem* — asymmetry suits a hard-to-represent policy, convolution
-suits spatial locality, attention suits long-range dependency. Such a hypothesis is only
-testable on a task that actually contains `S`. If the benchmark lacks `S`, then `A` has
-nothing to act on: the hypothesis predicts no effect *by construction*, a null says nothing
-about the hypothesis, and any single-seed win is noise. The failure is silent — nothing in
-a standard train/evaluate loop flags that the task could never have shown the effect either
-way. We argue this is a common and under-recognised way for architecture claims to be both
-made and refuted on tasks that cannot support them.
+We arrived at this through a concrete claim, our own. A prior study of ours reports that an
+inverted actor–critic asymmetry — a policy network deeper than its value network
+(`π=[512,256,128]` vs `v=[256,128]`) — outperforms a symmetric baseline at matched budget on
+a sparse-reward indoor-navigation task, from a single seed, together with a ≈12.5×
+sample-efficiency advantage of PPO over DQN. Both claims come apart on re-examination — but
+*how* they come apart is the more useful observation, and is what pointed us at the gap
+above: one claim asked a question the task could not answer, the other a question the
+measurement could not answer.
 
-This paper makes two contributions. **First, a reusable protocol** (§6) for determining
-whether a task can test a given architecture hypothesis: name the precondition `S`, build a
-manipulation ladder that targets it, gate rungs for learnability cheaply, spend seeds only
-on load-bearing rungs, and — before comparing architectures — confirm any induced hardness
-is attributable to `S` and not a confound. Pre-registration and the gate/multi-seed split
-are integral to it, not incidental. **Second, a worked negative outcome**: applying the
-protocol to the navigation task, we show the reported asymmetry advantage does not survive
-multiple seeds (§4) and, via a pre-registered observability ladder of four degradation
-mechanisms (§5), that *no* manipulation of the task induces the required regime — it stays
-reactively, redundantly, memorably easy, or fractures the wrong way (§7). We are careful
-throughout that this is a statement about *the task*, not the hypothesis: we show this task
-class cannot test inverted asymmetry, and specify (§8) what a task that could would need —
-not that asymmetry fails in RL.
+This paper makes two contributions. **First, a reusable protocol** (§6) for deciding whether
+a task can test a given architecture hypothesis, before trusting any comparison run on it:
+name the precondition `S`, build a manipulation ladder that targets it, gate rungs for
+learnability cheaply, spend seeds only on load-bearing rungs, and — before comparing
+architectures — confirm any induced hardness is attributable to `S` rather than a confound.
+Pre-registration and the cheap-gate/expensive-seed split are integral to it, not incidental.
+**Second, a worked negative outcome**: applied to the navigation task, the protocol shows
+the reported asymmetry advantage does not survive multiple seeds (§4) and that *no*
+pre-registered degradation of the task (§5) induces the regime the hypothesis needs — the
+task stays reactively, redundantly, memorably easy, or fractures the wrong way (§7).
+Throughout we are careful that this is a statement about *the task*, not the hypothesis: we
+show this task class cannot test inverted asymmetry, and specify (§8) what a task that could
+would need — not that asymmetry fails in reinforcement learning.
 
 ## 3. Related work
 
@@ -124,17 +132,15 @@ tempting and least checked.
 
 ---
 
-## 4. Phase 1 — multi-seed replication and the collapse of the single-seed claims
+## 4. Phase 1 — the reported effects do not survive, and their absence is not yet an answer
 
-The starting point is a prior report that an *inverted* actor–critic asymmetry — an
-actor network deeper than its critic (`π=[512,256,128]`, `v=[256,128]`) — improves
-performance over a symmetric baseline (`π=v=[256,256]`) on a sparse-reward indoor
-navigation task, at a matched parameter budget. That result was obtained from a
-single training seed. Deep RL is notoriously seed-sensitive [Henderson et al.], so
-before building on the claim we re-evaluate it under the evaluation protocol the
-reproducibility literature now recommends: interquartile-mean (IQM) aggregation with
-95 % stratified-bootstrap confidence intervals over many seeds [Agarwal et al.,
-*rliable*].
+We begin by holding the two prior claims to the evaluation standard the reproducibility
+literature now recommends — interquartile-mean (IQM) aggregation with 95 %
+stratified-bootstrap confidence intervals over many seeds [Agarwal et al., *rliable*] —
+across ten seeds each. Both dissolve. The purpose of this section, though, is not the
+dissolution itself but what it does and does not license: a dissolved effect on this task
+turns out to say nothing about the hypotheses behind it, and that emptiness is the first
+concrete symptom of the gap §5 then diagnoses.
 
 **Setup.** The environment is a 20×20 residential grid (`Discrete(5)` actions, a
 16-dimensional observation, reward `R(L)=30−0.2L` for an `L`-step success). We train
@@ -171,17 +177,25 @@ siblings sit at ~27.6.
 
 Re-measured with a defined, step-based, multi-seed statistic — environment steps to reach
 90% of the asymptotic eval-return IQM, over 10 seeds, aggregated with rliable [Agarwal et
-al.] — the advantage disappears. The representative PPO configuration reaches the threshold
-in an IQM of **36,667 steps [26,667, 40,000]** and the representative DQN configuration in
-**20,000 [14,000, 74,000]**; the DQN-to-PPO ratio is **0.55×, 95% CI [0.40, 2.02]** — an
-interval spanning parity, with the point estimate if anything favouring DQN. [P1-MS] There
-is no 12.5× PPO advantage, and no statistically resolvable PPO sample-efficiency advantage
-at all. The original figure was not so much wrong as unsupported by the measurement that
-produced it: a single-run, episode-counted, eyeballed convergence gap cannot bear a
-quantitative 12.5× claim. This is the same pattern as the asymmetry result — a claim
-outrunning what its measurement could support — and it is why the rest of the paper is
-concerned less with re-scoring individual claims than with the prior question of whether
-the task and the measurement can support the claim at all.
+al.] — no advantage remains; and to keep the comparison from turning on a chosen exemplar we
+report the full within-family distribution rather than a single pair. The four PPO
+configurations reach the threshold at IQMs of 36.7k (Exp 1), 36.7k (Exp 2), 163.3k (Exp 3),
+and 32.0k (Exp 4) steps; the five DQN configurations at 21.7k, 20.0k, 20.0k, 45.0k, and
+26.7k — with overlapping confidence intervals throughout (e.g. PPO Exp 1 [26.7k, 40.0k], DQN
+Exp 2 [14.0k, 74.0k]). [P1-MS] The two families occupy the same ≈20–45k band; the single
+configuration that leaves it, PPO Exp 3 at 163.3k steps, is the *slowest* of either family —
+so on an exemplar-independent reading PPO is no faster than DQN, and the one salient
+difference runs opposite to the claimed 12.5× advantage.
+
+These two results are one finding stated twice. The asymmetry claim put a question to a
+*task* that could not answer it — a benchmark lacking the structure the hypothesis is about.
+The sample-efficiency claim put a question to a *measurement* that could not answer it — a
+metric that cannot separate sample efficiency from episode duration, nor one run's eyeballed
+convergence point from noise. In both, the instrument was incapable of resolving the
+question asked of it, and an incapable instrument returns a confident-looking number either
+way. That is why neither number is yet an answer, and why the rest of the paper is concerned
+less with re-scoring individual claims than with the prior question of whether the task and
+the measurement can support the claim at all.
 
 Figures: `p1_iqm_main_configs.png` (per-config IQM + CI),
 `p1_perf_profile_ppo_inverted_vs_symmetric.png` (H1 performance profile),
