@@ -5,9 +5,11 @@ framing follow `docs/paper_outline.md`. **Provenance tags** ([P1-MS], [P2-MS],
 [GATE]) mark every evidence source per the outline's provenance table; **`⟦…⟧`**
 marks a number still to be filled from committed data (never invent one).
 
-Status: §1–§9 drafted. Two ⟦…⟧ placeholders — the 12.5× sample-efficiency
-re-measurement and the Colab archival verification — remain flagged for the
-pre-submission pass; nothing in the argument depends on their exact digits.
+Status: §1–§9 drafted against archival data. Provenance resolved — Phase 1 ran on
+Colab and was W&B-logged (archival); the Phase 2 cells are committed per-seed CSVs
+with frozen seeds and committed code (archival by the git + determinism standard: a
+clean-clone re-run reproduces them). The 12.5× re-measurement is filled (§1/§4). No
+pending ⟦…⟧ placeholders; no Colab re-runs outstanding.
 
 ---
 
@@ -25,10 +27,13 @@ claim-grade evaluation; and attribute any induced hardness to the precondition r
 to a confound before comparing architectures. We instantiate the protocol on a reported
 deep-RL result — that an *inverted* actor–critic asymmetry (a deeper actor than critic)
 improves sparse-reward indoor navigation. Under multi-seed evaluation the single-seed
-advantage disappears (IQM ⟦27.56⟧ vs ⟦27.66⟧, overlapping 95% CIs,
-P(inverted > symmetric) = ⟦0.25⟧; the reported ⟦12.5×⟧ sample-efficiency gap likewise
-re-measured), and a pre-registered observability ladder — four degradation mechanisms,
-each a dated amendment — shows *why*: no manipulation places the task in the regime the
+advantage disappears (IQM 27.56 vs 27.66, overlapping 95% CIs,
+P(inverted > symmetric) = 0.25), and the reported 12.5× PPO sample-efficiency advantage
+does not survive a defined, step-based, multi-seed measurement: in environment-steps to
+90% of asymptotic return the two algorithms are statistically indistinguishable (DQN:PPO
+ratio 0.55×, 95% CI [0.40, 2.02], spanning parity). A pre-registered observability ladder
+— four degradation mechanisms, each a dated amendment — then shows *why* the asymmetry
+question cannot be settled here: no manipulation places the task in the regime the
 hypothesis needs. Every rung either **ceilings** (the optimal policy stays easy to
 represent) or **fractures** into a give-up local optimum (hard, but not in the way the
 hypothesis specifies). We report this as a worked *negative outcome of the protocol*, not
@@ -145,12 +150,38 @@ confidence intervals and a probability of improvement **P(inverted > symmetric) 
 symmetric one on a random seed. [P1-MS] The single-seed advantage was seed noise;
 the pre-registered falsification criterion for the asymmetry hypothesis (H1) is met.
 
-**Result 2 — the sample-efficiency claim.** The original report also claimed the
-policy-gradient agent was ≈12.5× more sample-efficient than its value-based
-counterpart. Re-measured across 10 seeds as env-steps-to-90 %-of-asymptotic-IQM, the
-multi-seed ratio is ⟦ratio ± CI, from `results/csv/p1_*.csv`⟧, which ⟦confirms /
-substantially shrinks⟧ the original figure. [P1-MS] *(Number pending the archival
-Phase 1 aggregation; the claim is stated here only to be filled, not asserted.)*
+**Result 2 — the sample-efficiency claim was the wrong kind of measurement.** The
+original report also claimed the policy-gradient agent (PPO) is ≈12.5× more
+sample-efficient than the value-based agent (DQN), on the basis that *"PPO converged to
+stable high performance within approximately 20 episodes versus nearly 250 for DQN"* —
+that is, `12.5× = 250 / 20`, a ratio of **episodes-to-visual-convergence** read off
+single-run learning curves. This quantity is not a sound cross-algorithm sample-efficiency
+measure, for three reasons. **(a) Episodes are not a common currency of experience.**
+Episode length on this task varies five- to ten-fold with policy quality — a wandering
+early-training agent runs to the 150-step timeout while a converged agent finishes in
+~14 steps — so "one episode" purchases very different amounts of environment interaction
+at different points in training. For two algorithms whose episode-length trajectories
+differ, an episode-count ratio therefore conflates sample efficiency with episode
+duration; the currency the agent actually spends, and that the two algorithms share, is
+*environment steps*. **(b) "Stable high performance" is eyeballed.** A convergence point
+identified by eye has no defined threshold, and, read off a single curve, carries no
+uncertainty. **(c) It is a single run** — and §4's own H1 data shows how misleading single
+runs are on this task, where one PPO seed collapses to a return of 3.6 while its nine
+siblings sit at ~27.6.
+
+Re-measured with a defined, step-based, multi-seed statistic — environment steps to reach
+90% of the asymptotic eval-return IQM, over 10 seeds, aggregated with rliable [Agarwal et
+al.] — the advantage disappears. The representative PPO configuration reaches the threshold
+in an IQM of **36,667 steps [26,667, 40,000]** and the representative DQN configuration in
+**20,000 [14,000, 74,000]**; the DQN-to-PPO ratio is **0.55×, 95% CI [0.40, 2.02]** — an
+interval spanning parity, with the point estimate if anything favouring DQN. [P1-MS] There
+is no 12.5× PPO advantage, and no statistically resolvable PPO sample-efficiency advantage
+at all. The original figure was not so much wrong as unsupported by the measurement that
+produced it: a single-run, episode-counted, eyeballed convergence gap cannot bear a
+quantitative 12.5× claim. This is the same pattern as the asymmetry result — a claim
+outrunning what its measurement could support — and it is why the rest of the paper is
+concerned less with re-scoring individual claims than with the prior question of whether
+the task and the measurement can support the claim at all.
 
 Figures: `p1_iqm_main_configs.png` (per-config IQM + CI),
 `p1_perf_profile_ppo_inverted_vs_symmetric.png` (H1 performance profile),
