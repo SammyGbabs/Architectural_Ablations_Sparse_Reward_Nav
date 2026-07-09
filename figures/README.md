@@ -49,6 +49,7 @@ The single source of truth for what figures exist, what they show, and how they 
 | `p2_rung3_observed_vs_predicted.png` | `Analysis/rung3_difficulty_model.py` | env grid + gate results_log | 2026-07-02 | Phase 2 calibration | H-model predicted difficulty vs observed per-room difficulty at p=0.5/0.7/0.8 — shows H is NOT the mechanism |
 | `p2_ladder_iqm.png` | `Analysis/plot_p2_ladder.py` | `results/csv/p2_*_sym.csv` | 2026-07-04 | paper §5 (results) | Per-cell IQM+95% CI (10 seeds); three ceilings vs the p=0.8 fracture, ceiling reference. flicker07 auto-adds when its CSV lands |
 | `p2_flicker08_perseed.png` | `Analysis/plot_p2_ladder.py` | `results/csv/p2_flicker08_sym.csv` | 2026-07-04 | paper §5 (fracture) | p=0.8 per-seed outcome split (timeouts not collisions) + per-room SR heatmap (kitchen abandoned 10/10) |
+| `pc_dose_response.png` | `Analysis/positive_control.py plot` | `results/csv/positive_control.csv` | 2026-07-10 | paper §(positive control) | CNN vs param-matched MLP test-acc (IQM+CI, 10 seeds) vs scramble fraction q; the gap tracks spatial locality — appears at q=0, vanishes/inverts by q=1 |
 
 *(Add new rows below as figures land. Mark retired figures with `~~strikethrough~~` rather than deleting them — provides audit trail.)*
 
