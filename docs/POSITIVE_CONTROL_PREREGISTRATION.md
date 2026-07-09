@@ -61,6 +61,13 @@ Everything else is held fixed across both architectures and all five rungs: opti
 (Adam), learning rate, batch size, epoch/step budget, weight-init scheme, and data
 pipeline. Only the architecture and `q` vary.
 
+**Training budget (fixed, sub-asymptotic — pre-committed).** The convolutional advantage is
+widest *before* convergence; trained to saturation, both models approach the same MNIST
+ceiling and `gap(q=0)` shrinks toward the noise floor. To keep the gap resolvable we fix a
+modest budget: **2 epochs** over the MNIST training set (Adam, lr `1e-3`, batch size 128),
+**identical** across both architectures, all five rungs, and all seeds. Neither architecture
+is trained to saturation.
+
 **Seeds & aggregation.** **10 seeds** per (architecture × rung) cell — matching the
 navigation study. Metric: **test accuracy**. Aggregate across seeds with **IQM + 95%
 stratified-bootstrap CI** (rliable), as elsewhere in the paper.
@@ -71,9 +78,14 @@ stratified-bootstrap CI** (rliable), as elsewhere in the paper.
 
 - **P1 (CNN).** CNN accuracy is high at `q=0` (expect ~98–99%) and **decreases
   monotonically** as `q → 1`, approaching the MLP.
-- **P2 (MLP).** MLP accuracy is **approximately flat** across `q` — an MLP is invariant to a
-  fixed permutation of its inputs (it is just a relabeling of input units), so scrambling
-  locality should not change what it can learn.
+- **P2 (MLP).** MLP accuracy is **flat** across `q` — an MLP is invariant to a fixed
+  permutation of its inputs (a relabeling of input units), so scrambling locality should not
+  change what it can learn. **Operationalised (pre-committed threshold, so the confound
+  branch can fire cleanly rather than being judged post-hoc):** *P2 holds iff*
+  `|IQM_acc(MLP, q=1) − IQM_acc(MLP, q=0)| < 1.0 percentage point`. A drop of ≥1.0pp from
+  `q=0` to `q=1` means P2 **fails** — the permutation destroyed information, not only
+  locality (a bug, not a result; see §4). As corroboration we additionally expect the `q=1`
+  MLP IQM to lie within the 95% CI of the `q=0` MLP IQM.
 - **P3 (gap).** `gap(q) = IQM_acc(CNN) − IQM_acc(MLP)` is **large with a 95% CI excluding 0
   at `q=0`**, **shrinks monotonically** with `q`, and is **≈0 (CI includes 0) at `q=1`**.
 - **P4 (protocol verdict per rung).** Applying §6 step 5: at **`q=0` the task CAN test
@@ -116,6 +128,14 @@ failed. Together the two cases show the guard doing its job in both directions.
   control prediction is not met; reported as such, not massaged.
 - **P1 fails** (CNN does not lead at `q=0`) ⇒ the A/S example is wrong; report and reconsider.
 
+**Saturation contingency (pre-committed, 2026-07-09 — decided before any data).** MNIST is
+nearly saturated for both models, so `gap(q=0)` may be too small to resolve, and the whole
+control hinges on `gap(q=0)` clearly excluding 0. **Decided in advance:** if `gap(q=0)`'s
+95% CI **includes 0** on MNIST (with the fixed 2-epoch budget above), MNIST is too saturated
+to serve as a positive control; we **escalate to CIFAR-10 and re-run the full ladder** —
+identical design (same five `q` rungs, CNN vs param-matched MLP, 10 seeds, sub-asymptotic
+budget). This is a dated, pre-registered contingency, **not** a post-hoc dataset swap.
+
 ---
 
 ## 6. Scope discipline (HARD limits)
@@ -153,4 +173,11 @@ ablations. **If a fourth experiment suggests itself, STOP and ask.**
 
 ## Amendments
 
-*(none yet)*
+**Pre-run tightening — 2026-07-09 (before any run; approved).** Two operational tightenings
+applied to the frozen design *before* building or collecting any data: (1) **P2 given a
+falsifiable threshold** — `|Δ IQM_MLP(q=0→q=1)| < 1.0 pp`, so the confound branch fires by a
+pre-committed rule rather than a post-hoc flatness judgement (§2, §4); (2) a **saturation
+contingency** — escalate to CIFAR-10 if `gap(q=0)`'s 95% CI includes 0 (§5) — plus a **fixed
+sub-asymptotic 2-epoch budget** (§1) chosen so neither model saturates and the gap stays
+resolvable. No data existed at amendment time; predictions P1/P3/P4, the ladder, and the
+interpretation table are unchanged.
