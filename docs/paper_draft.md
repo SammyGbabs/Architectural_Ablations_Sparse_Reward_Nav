@@ -364,6 +364,81 @@ actor–critic asymmetry, `S` = a policy that is hard to represent while the val
 smooth, the ladder = graded observation degradation, and finds no rung satisfies the
 precondition — the concrete shape of one negative outcome the protocol can return.
 
+### 6.1 A positive control: the protocol returns *yes* where the precondition is present
+
+A procedure that has so far returned only its negative branch invites a fair objection: is
+it a detector, or merely a rejection stamp? To show it also returns **yes**, we run it as a
+**positive control** on a task where the precondition can be inserted and removed at will,
+recovering a *known-true* effect rather than asserting a new one: `A` = convolution,
+`S` = spatial locality. The ladder is a single fixed permutation of the MNIST pixels applied
+to a fraction `q ∈ {0, 0.25, 0.5, 0.75, 1.0}` of positions (nested subsets, a derangement
+within each, identity elsewhere). Every rung is a **bijection** on pixel positions — a fixed
+relabeling of the input units — so **information is provably preserved** (the classes remain
+perfectly separable); what is progressively destroyed as `q → 1` is only spatial locality. We
+compare a small CNN against a parameter-matched MLP (105.9k parameters each), 10 seeds,
+everything else held fixed, at a sub-asymptotic budget where the convolutional advantage is
+widest. Design, predictions, and interpretation table were pre-registered before any run.
+
+| `q` | CNN test acc. (IQM, 95% CI) | MLP test acc. (IQM, 95% CI) | gap |
+|---|---|---|---|
+| 0.00 | 97.98 [97.81, 98.14] | 95.83 [95.72, 95.89] | **+2.15** |
+| 0.25 | 97.31 [97.12, 97.45] | 95.66 [95.54, 95.82] | +1.65 |
+| 0.50 | 96.27 [96.13, 96.47] | 95.69 [95.57, 95.86] | +0.59 |
+| 0.75 | 93.59 [93.25, 93.89] | 95.77 [95.68, 95.85] | −2.18 |
+| 1.00 | 93.18 [92.93, 93.45] | 95.70 [95.60, 95.82] | −2.52 |
+
+Figure X plots the dose–response. The frozen predictions were: **P1**, the CNN degrades
+monotonically as `q → 1`; **P2**, the MLP stays flat (it is invariant to a fixed permutation
+of its inputs); **P3**, the gap is large at `q=0` and closes to ≈0 at `q=1`; **P4**, the
+protocol therefore reports the task *can* test `A`-suits-`S` at `q=0` and *cannot* at `q=1`.
+P1 held (CNN IQM 97.98 → 93.18, monotone). P4 held: at `q=0` the CNN leads by **+2.15 points
+with disjoint 95% CIs** — a resolvable effect — while at `q=1` there is no positive gap to
+find.
+
+**P3 was partially wrong, in an informative direction, and we report it as such.** The gap
+does shrink monotonically, but at `q=1` it does not settle at zero — it crosses to **−2.52**,
+the CNN landing *below* the MLP with disjoint CIs. We had frozen "≈0"; the data say the
+convolutional prior is not merely uninformative on non-local inputs but mildly *harmful* —
+the CNN is constrained to seek local structure the scrambled task no longer contains, while
+the position-agnostic MLP is unencumbered. This does not weaken the control; the effect still
+appears and vanishes with `S`. But a prediction missed, and we let it stand rather than round
+it to the number we pre-registered — the paper asks that discipline of the work it examines,
+and owes it of itself.
+
+The MLP curve is what licenses attributing the CNN's decline to `S` specifically. Because
+each rung is a bijection, the MLP's **0.13-point** drift from `q=0` to `q=1` is optimization
+noise, not information loss: the task did not get *harder*, only locality was removed, so the
+CNN's fall can only be the loss of the structure convolution exploits. (Flatness is judged by
+a pre-committed absolute threshold, `|Δ| < 1.0` point, which holds comfortably; the
+corroborating CI check misses by 0.02 points, because with 10 seeds the intervals are ±0.1
+point wide — so tight that a practically negligible shift falls outside them. We pre-committed
+the absolute threshold precisely because CI-overlap is not a sound flatness criterion at that
+precision: pre-registration working as intended.) This is the §6 step-5 `S`-attribution guard
+**succeeding** — the complement of the navigation `p=0.8` fracture, where the same guard
+*disqualified* a rung that had become hard the wrong way.
+
+The point is not about convolutions. It is that the protocol tracks the effect **appearing
+and vanishing with `S`**: run one rung over, at `q=0`, and it recovers the CNN advantage in
+full; run at `q=1`, and it correctly reports there is nothing to find. Where `S` can be dialed
+in, the protocol says *yes*; on the navigation task of §§4–5, no manipulation could dial `S`
+in at all, and it says *no*. **The instrument works; the benchmark doesn't.**
+
+> A researcher who evaluated only the fully-scrambled task — who trained a CNN and an MLP on
+> `q=1` MNIST and compared them — would not see the two merely tie. They would see the CNN
+> lose by two and a half points and conclude that *convolution is actively harmful for image
+> classification*. The conclusion is absurd, and it is absurd for exactly the reason the
+> navigation null is: the task they measured has had its spatial locality permuted out of it,
+> so it could never have shown the benefit of a locality prior, and a sound, multi-seed
+> measurement of a meaningless comparison returns a confident wrong answer. That researcher
+> stands in the identical structural position as one concluding "actor–critic asymmetry hurts
+> in reinforcement learning" from the navigation result. The only difference is that here we
+> can *see* the error, because the same protocol run one rung over recovers the effect in
+> full — a luxury the navigation study, having no `q=0` to fall back on, does not afford.
+
+This is a positive control for the protocol, not a contribution about convolutional
+architectures: we claim nothing beyond the well-known fact that locality helps when it is
+present, and use it only to show the instrument reads *yes* as readily as *no*.
+
 ## 7. Why this task resisted every manipulation
 
 That no rung induced the precondition is not a failure of effort — four qualitatively
