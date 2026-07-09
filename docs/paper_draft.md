@@ -387,7 +387,8 @@ widest. Design, predictions, and interpretation table were pre-registered before
 | 0.75 | 93.59 [93.25, 93.89] | 95.77 [95.68, 95.85] | −2.18 |
 | 1.00 | 93.18 [92.93, 93.45] | 95.70 [95.60, 95.82] | −2.52 |
 
-Figure X plots the dose–response. The frozen predictions were: **P1**, the CNN degrades
+The dose–response (`pc_dose_response.png`), both accuracy curves with 95% CI bands and the
+shrinking gap, is plotted alongside. The frozen predictions were: **P1**, the CNN degrades
 monotonically as `q → 1`; **P2**, the MLP stays flat (it is invariant to a fixed permutation
 of its inputs); **P3**, the gap is large at `q=0` and closes to ≈0 at `q=1`; **P4**, the
 protocol therefore reports the task *can* test `A`-suits-`S` at `q=0` and *cannot* at `q=1`.
@@ -409,11 +410,13 @@ The MLP curve is what licenses attributing the CNN's decline to `S` specifically
 each rung is a bijection, the MLP's **0.13-point** drift from `q=0` to `q=1` is optimization
 noise, not information loss: the task did not get *harder*, only locality was removed, so the
 CNN's fall can only be the loss of the structure convolution exploits. (Flatness is judged by
-a pre-committed absolute threshold, `|Δ| < 1.0` point, which holds comfortably; the
-corroborating CI check misses by 0.02 points, because with 10 seeds the intervals are ±0.1
-point wide — so tight that a practically negligible shift falls outside them. We pre-committed
-the absolute threshold precisely because CI-overlap is not a sound flatness criterion at that
-precision: pre-registration working as intended.) This is the §6 step-5 `S`-attribution guard
+a pre-committed absolute threshold, `|Δ| < 1.0` point, which holds comfortably at 0.13 points.
+The corroborating check — whether the `q=1` MLP IQM (95.70) lies inside the `q=0` MLP's 95%
+CI, [95.72, 95.89] — misses at the lower bound by 0.02 points. This is an artifact of
+precision, not a real shift: with 10 seeds that interval is only ±0.1 point wide, so a change
+far smaller than any practical significance still falls outside it. We pre-committed the
+absolute threshold precisely because CI-overlap is not a sound flatness criterion at that
+resolution — pre-registration working as intended.) This is the §6 step-5 `S`-attribution guard
 **succeeding** — the complement of the navigation `p=0.8` fracture, where the same guard
 *disqualified* a rung that had become hard the wrong way.
 
@@ -529,3 +532,16 @@ architectural hypothesis, together with a reusable protocol for detecting this f
 mode before it is mistaken for evidence either way. A single-seed positive result on such
 a task — the literature's starting point here — is exactly what the protocol is designed
 to catch.
+
+A protocol that only ever returned *no* would be a rejection stamp, not an instrument;
+§6.1 answers that objection directly. On a vision task where the precondition can be
+inserted and removed at will, the same procedure returns a clean *yes* where spatial
+locality is present and *no* where it is not, tracking the effect as it appears and
+vanishes — the positive branch, demonstrated. The remaining limitation is specific and we
+state it plainly: that positive instantiation is on image classification, not on
+reinforcement learning. We have exhibited the protocol's positive branch (on vision) and
+its negative branch (on RL navigation), but **not a substantive positive instantiation on
+an RL task** — one of the kind §8 specifies, where the asymmetry precondition is present in
+a learnable regime and the architecture comparison can actually run. Constructing that task
+and testing inverted asymmetry where it *can* be tested is the natural next step; the
+specification in §8 is written to make it buildable.
