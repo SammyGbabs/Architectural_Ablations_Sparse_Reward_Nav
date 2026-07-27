@@ -24,12 +24,12 @@ at all**, before trusting any comparison run on it: state the structural precond
 hypothesis requires; build a graded manipulation ladder that targets it; gate each rung
 for learnability with a single seed; promote only load-bearing rungs to multi-seed,
 claim-grade evaluation; and attribute any induced hardness to the precondition rather than
-to a confound before comparing architectures. We instantiate the protocol on a reported
-deep-RL result — that an *inverted* actor–critic asymmetry (a deeper actor than critic)
-improves sparse-reward indoor navigation. Under multi-seed evaluation the single-seed
-advantage disappears (IQM 27.56 vs 27.66, overlapping 95% CIs,
-P(inverted > symmetric) = 0.25), and the reported 12.5× PPO sample-efficiency advantage
-does not survive a defined, step-based, multi-seed measurement: in environment-steps to
+to a confound before comparing architectures. We instantiate the protocol on a claim from
+our own earlier, unpublished work — that an *inverted* actor–critic asymmetry (a deeper actor
+than critic) improves sparse-reward indoor navigation. Under multi-seed evaluation the
+single-seed advantage disappears (IQM 27.56 vs 27.66, overlapping 95% CIs,
+P(inverted > symmetric) = 0.25), and the 12.5× PPO sample-efficiency advantage we had earlier
+reported does not survive a defined, step-based, multi-seed measurement: in environment-steps to
 90% of asymptotic return the two algorithms' distributions overlap entirely — no PPO
 configuration is faster than the DQN family, and the one outlier is a *slow* PPO
 configuration. A pre-registered observability ladder
@@ -69,11 +69,11 @@ single-seed win is noise dressed as evidence. Nothing in a standard train-and-ev
 flags this — the task quietly fails to pose the question, and the experiment quietly answers
 a different one.
 
-We arrived at this through a concrete claim, our own. A prior study of ours reports that an
-inverted actor–critic asymmetry — a policy network deeper than its value network
-(`π=[512,256,128]` vs `v=[256,128]`) — outperforms a symmetric baseline at matched budget on
-a sparse-reward indoor-navigation task, from a single seed, together with a ≈12.5×
-sample-efficiency advantage of PPO over DQN. Both claims come apart on re-examination — but
+We arrived at this through a concrete claim of our own. In earlier, unpublished experiments
+of ours, an inverted actor–critic asymmetry — a policy network deeper than its value network
+(`π=[512,256,128]` vs `v=[256,128]`) — appeared to outperform a symmetric baseline at matched
+budget on a sparse-reward indoor-navigation task, on a single seed, together with an apparent
+≈12.5× sample-efficiency advantage of PPO over DQN. Both claims come apart on re-examination — but
 *how* they come apart is the more useful observation, and is what pointed us at the gap
 above: one claim asked a question the task could not answer, the other a question the
 measurement could not answer.
@@ -134,7 +134,8 @@ tempting and least checked.
 
 ## 4. Phase 1 — the reported effects do not survive, and their absence is not yet an answer
 
-We begin by holding the two prior claims to the evaluation standard the reproducibility
+We begin by holding the two claims from our earlier unpublished experiments to the evaluation
+standard the reproducibility
 literature now recommends — interquartile-mean (IQM) aggregation with 95 %
 stratified-bootstrap confidence intervals over many seeds [Agarwal et al., *rliable*] —
 across ten seeds each. Both dissolve. The purpose of this section, though, is not the
@@ -145,7 +146,7 @@ concrete symptom of the gap §5 then diagnoses.
 **Setup.** The environment is a 20×20 residential grid (`Discrete(5)` actions, a
 16-dimensional observation, reward `R(L)=30−0.2L` for an `L`-step success). We train
 the two architectures — symmetric and inverted — with otherwise identical PPO
-hyperparameters (verbatim from the original configurations) for a fixed 200k-step
+hyperparameters (verbatim from those earlier experiments' configurations) for a fixed 200k-step
 budget, at **10 seeds each**, and aggregate with rliable. [P1-MS]
 
 **Result 1 — the asymmetry advantage does not survive multiple seeds.** Under
@@ -156,12 +157,11 @@ confidence intervals and a probability of improvement **P(inverted > symmetric) 
 symmetric one on a random seed. [P1-MS] The single-seed advantage was seed noise;
 the pre-registered falsification criterion for the asymmetry hypothesis (H1) is met.
 
-**Result 2 — the sample-efficiency claim was the wrong kind of measurement.** The
-original report also claimed the policy-gradient agent (PPO) is ≈12.5× more
-sample-efficient than the value-based agent (DQN), on the basis that *"PPO converged to
-stable high performance within approximately 20 episodes versus nearly 250 for DQN"* —
-that is, `12.5× = 250 / 20`, a ratio of **episodes-to-visual-convergence** read off
-single-run learning curves. This quantity is not a sound cross-algorithm sample-efficiency
+**Result 2 — the sample-efficiency claim was the wrong kind of measurement.** Those same
+earlier experiments also reported the policy-gradient agent (PPO) to be ≈12.5× more
+sample-efficient than the value-based agent (DQN), on the basis that PPO reached stable high
+performance in roughly 20 episodes against nearly 250 for DQN — that is, `12.5× = 250 / 20`,
+a ratio of **episodes-to-visual-convergence** read off single-run learning curves. This quantity is not a sound cross-algorithm sample-efficiency
 measure, for three reasons. **(a) Episodes are not a common currency of experience.**
 Episode length on this task varies five- to ten-fold with policy quality — a wandering
 early-training agent runs to the 150-step timeout while a converged agent finishes in
@@ -530,7 +530,7 @@ nothing here bears on that. The contribution is precisely scoped on purpose: a r
 demonstration that a specific, widely-used *style* of task cannot test a specific
 architectural hypothesis, together with a reusable protocol for detecting this failure
 mode before it is mistaken for evidence either way. A single-seed positive result on such
-a task — the literature's starting point here — is exactly what the protocol is designed
+a task — our own starting point here — is exactly what the protocol is designed
 to catch.
 
 A protocol that only ever returned *no* would be a rejection stamp, not an instrument;
