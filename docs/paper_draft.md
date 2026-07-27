@@ -1,15 +1,14 @@
-# Paper draft (working)
+# Testing whether a task can test an architecture hypothesis
 
-Prose draft, section by section, against real committed numbers. Structure and
-framing follow `docs/paper_outline.md`. **Provenance tags** ([P1-MS], [P2-MS],
-[GATE]) mark every evidence source per the outline's provenance table; **`⟦…⟧`**
-marks a number still to be filled from committed data (never invent one).
+*(Working title — draft prose. Not anonymized; not yet ported to the TMLR LaTeX template.)*
 
-Status: §1–§9 drafted against archival data. Provenance resolved — Phase 1 ran on
-Colab and was W&B-logged (archival); the Phase 2 cells are committed per-seed CSVs
-with frozen seeds and committed code (archival by the git + determinism standard: a
-clean-clone re-run reproduces them). The 12.5× re-measurement is filled (§1/§4). No
-pending ⟦…⟧ placeholders; no Colab re-runs outstanding.
+**Notation left visible for the writing pass.** Bracketed provenance tags `[P1-MS]` /
+`[P2-MS]` / `[GATE]` mark each number's evidence source (multi-seed Phase 1 / multi-seed
+Phase 2 / single-seed gate — the last never cited as a result). Bracketed author names
+(`[Henderson et al.]`, `[Agarwal et al.]`, `[Hausknecht & Stone]`, `[POPGym]`,
+`[Mnih et al.]`) are citation placeholders to be filled. No `⟦…⟧` data placeholders remain.
+Figures are referenced by number; the image files live in `figures/` (filename given in
+each caption).
 
 ---
 
@@ -197,9 +196,16 @@ way. That is why neither number is yet an answer, and why the rest of the paper 
 less with re-scoring individual claims than with the prior question of whether the task and
 the measurement can support the claim at all.
 
-Figures: `p1_iqm_main_configs.png` (per-config IQM + CI),
-`p1_perf_profile_ppo_inverted_vs_symmetric.png` (H1 performance profile),
-`p1_sample_efficiency_ppo_vs_dqn.png`.
+**Figure 1.** Per-configuration IQM eval return with 95% stratified-bootstrap CIs across the
+nine main configs (PPO Exp 1–4, DQN Exp 1–5), 10 seeds each. (`figures/p1_iqm_main_configs.png`)
+
+**Figure 2.** H1 performance profile — fraction of runs exceeding a return threshold, inverted
+(Exp 4) vs symmetric (Exp 1); the two curves overlap across the range.
+(`figures/p1_perf_profile_ppo_inverted_vs_symmetric.png`)
+
+**Figure 3.** Sample efficiency — environment-steps to 90% of asymptotic IQM (IQM + 95% CI),
+PPO vs DQN; the two families' distributions overlap, the one outlier being a *slow* PPO
+config. (`figures/p1_sample_efficiency_ppo_vs_dqn.png`)
 
 **Why the advantage vanished — the diagnosis that motivates the rest of the paper.**
 A null is not automatically informative: the asymmetry hypothesis could be false, or
@@ -255,11 +261,21 @@ under flicker the two equidistant rooms diverge sharply (at `p=0.8`, kitchen is
 abandoned while bedroom is solved), so difficulty is **geometry/approach-dependent,
 not distance-dependent** — no single flicker rate places all rooms in a partial band.
 This directed the aliasing rung and is reported as calibration, not as a result
-(figures `p2_rung3_blackout_vs_p.png`, `p2_rung3_observed_vs_predicted.png`).
+(Figures 4–5).
+
+**Figure 4.** P(disabling blackout ≥1 per episode) versus flicker probability `p` at `k=4`,
+one curve per room using its real BFS path length `H`, with the "hard-but-learnable" band
+shaded. (`figures/p2_rung3_blackout_vs_p.png`)
+
+**Figure 5.** Model-predicted (distance-`H`-based) per-room difficulty vs observed per-room
+difficulty at `p=0.5/0.7/0.8`; the observed ordering does not follow `H` — difficulty is
+geometry-, not distance-, driven. (`figures/p2_rung3_observed_vs_predicted.png`)
 
 **Claim-grade results.** [P2-MS] For a *standard* (symmetric) PPO agent — Exp 1
 hyperparameters verbatim, 10 seeds, rliable IQM + 95% CI — every cell either ceilings
-or fractures; none is hard-but-learnable (Table 2; `p2_ladder_iqm.png`):
+or fractures; none is hard-but-learnable (Table 1; Figure 6):
+
+**Table 1.** Phase 2 claim-grade ladder cells — symmetric PPO, 10 seeds, rliable IQM + 95% CI.
 
 | Cell | obs | steps | IQM eval return (95% CI) | per-room SR (k/bed/bath) | outcome |
 |---|---|---|---|---|---|
@@ -268,6 +284,10 @@ or fractures; none is hard-but-learnable (Table 2; `p2_ladder_iqm.png`):
 | Prox-noise q=0.3 | 13-D | 200k | 26.78 [26.41, 26.93] | 1.00/1.00/1.00 | ceiling |
 | Flicker p=0.7 | 52-D | 500k | 26.14 [25.42, 26.32] | 1.00/1.00/1.00 | ceiling (slow) |
 | Flicker p=0.8 | 52-D | 200k | 8.95 [6.29, 13.01] | 0.00/1.00/0.33 | **fracture** |
+
+**Figure 6.** The ladder cells of Table 1 plotted: per-cell IQM eval return + 95% CI — four
+ceilings clustered near the 27.8 reference vs the p=0.8 fracture isolated at 8.95.
+(`figures/p2_ladder_iqm.png`)
 
 Three observations are decisive. **First, the ceilings are real ceilings, not slow
 learners or wall-avoidance floors:** the four ceiling cells reach 100% success on all
@@ -279,13 +299,18 @@ below 27.8 being a path-length tax from occasional blackouts, not sub-ceiling di
 one cell that leaves the ceiling does not become hard-but-learnable — it fractures:**
 at `p=0.8`, IQM collapses to 8.95 and the failure is a *systematic give-up*, robust
 across all 10 seeds — **kitchen is abandoned in 10/10 seeds and bedroom solved in
-10/10** (`p2_flicker08_perseed.png`), with failures being timeouts, not collisions.
+10/10** (Figure 7), with failures being timeouts, not collisions.
 That is a degenerate local optimum, not the graceful partial competence a fair
 architecture test needs. **Third, this exhausts the axis:** across removal, flicker,
 aliasing, and sensor noise — the pre-registered cap on single-map observation
 degradation — no rung meets the precondition. On this task, the H1 asymmetry
 hypothesis is **untestable**: the null of §4 is a fact about the task, not (on this
 evidence) about the hypothesis.
+
+**Figure 7.** The p=0.8 fracture, per seed — left: outcome split (success / timeout /
+collision), showing failures are timeouts not collisions; right: per-room success-rate
+heatmap across the 10 seeds, kitchen abandoned 10/10 and bedroom solved 10/10.
+(`figures/p2_flicker08_perseed.png`)
 
 ---
 
@@ -387,8 +412,14 @@ widest. Design, predictions, and interpretation table were pre-registered before
 | 0.75 | 93.59 [93.25, 93.89] | 95.77 [95.68, 95.85] | −2.18 |
 | 1.00 | 93.18 [92.93, 93.45] | 95.70 [95.60, 95.82] | −2.52 |
 
-The dose–response (`pc_dose_response.png`), both accuracy curves with 95% CI bands and the
-shrinking gap, is plotted alongside. The frozen predictions were: **P1**, the CNN degrades
+**Table 2.** Positive-control dose-response — CNN vs parameter-matched MLP test accuracy
+(IQM + 95% CI, 10 seeds) at each scramble fraction `q`.
+
+**Figure 8.** The dose-response of Table 2 plotted: CNN and MLP test accuracy vs scramble
+fraction `q`, with 95% CI bands and the shrinking gap; the CNN starts high, declines
+monotonically, and crosses the flat MLP near `q≈0.55`. (`figures/pc_dose_response.png`)
+
+Figure 8 shows the dose–response. The frozen predictions were: **P1**, the CNN degrades
 monotonically as `q → 1`; **P2**, the MLP stays flat (it is invariant to a fixed permutation
 of its inputs); **P3**, the gap is large at `q=0` and closes to ≈0 at `q=1`; **P4**, the
 protocol therefore reports the task *can* test `A`-suits-`S` at `q=0` and *cannot* at `q=1`.
