@@ -27,11 +27,12 @@ to a confound before comparing architectures. We instantiate the protocol on a c
 our own earlier, unpublished work — that an *inverted* actor–critic asymmetry (a deeper actor
 than critic) improves sparse-reward indoor navigation. Under multi-seed evaluation the
 single-seed advantage disappears (IQM 27.56 vs 27.66, overlapping 95% CIs,
-P(inverted > symmetric) = 0.25), and the 12.5× PPO sample-efficiency advantage we had earlier
-reported does not survive a defined, step-based, multi-seed measurement: in environment-steps to
-90% of asymptotic return the two algorithms' distributions overlap entirely — no PPO
-configuration is faster than the DQN family, and the one outlier is a *slow* PPO
-configuration. A pre-registered observability ladder
+P(inverted > symmetric) = 0.25), and the ≈12.5× PPO sample-efficiency advantage we had earlier
+reported likewise does not survive a defined, step-based, multi-seed measurement: four of the
+five DQN configurations reach 90% of asymptotic return faster than any PPO configuration, the
+slowest configuration in either family is a PPO one, and the ratio's confidence interval spans
+parity — there is no resolvable PPO advantage, and the point estimates if anything favour DQN.
+A pre-registered observability ladder
 — four degradation mechanisms, each a dated amendment — then shows *why* the asymmetry
 question cannot be settled here: no manipulation places the task in the regime the
 hypothesis needs. Every rung either **ceilings** (the optimal policy stays easy to
@@ -57,6 +58,13 @@ expressed it produce the same numbers. rliable can tell you a comparison is stat
 sound; it cannot tell you it is meaningful. Pre-registration can tell you that you did not
 fish for the result; it cannot tell you the pond contains fish. That gap — between a sound
 measurement and a meaningful one — is the subject of this paper.
+
+This gap is not unnamed. In measurement theory it is a question of *construct validity* —
+whether an instrument measures the phenomenon it purports to — and a growing literature
+applies that lens critically to machine-learning benchmarks (§3). That literature is largely
+diagnostic, identifying validity failures in benchmarks after the fact; our contribution is a
+constructive counterpart, an executable test a researcher can run *before* trusting a
+comparison.
 
 The gap has a common structure. An architecture hypothesis almost always asserts that
 *architectural property `A` helps because it suits some structure `S` of the problem* —
@@ -93,41 +101,71 @@ would need — not that asymmetry fails in reinforcement learning.
 
 ## 3. Related work
 
-**Reproducibility and evaluation in deep RL.** Henderson et al.'s *Deep Reinforcement
-Learning that Matters* documented how seed variance, implementation details, and
-under-powered comparisons produce non-reproducible conclusions; Agarwal et al. (*rliable*)
-provide the statistical remedy we adopt — interquartile mean with stratified-bootstrap
-confidence intervals and performance profiles, over many seeds. Our work builds on this but
-targets a complementary failure mode: a comparison can be statistically impeccable and still
-meaningless if the task cannot express the hypothesised effect. Good statistics answer
-"is the measured difference real?"; our protocol answers the prior question, "*could* this
-task have shown the difference at all?".
+**Reproducibility and evaluation in deep RL.** A body of work has documented that deep
+reinforcement learning results are highly sensitive to random seeds, implementation details,
+and hyperparameters, and that single-run comparisons frequently fail to replicate
+[Henderson et al., 2018]. The now-standard response is to report distributional statistics —
+interquartile means with stratified-bootstrap confidence intervals — rather than point
+estimates [Agarwal et al., 2021]. We adopt this machinery throughout. Our concern, however,
+is orthogonal to it: these methods establish whether a measured difference is *statistically*
+real, not whether the task was capable of producing the difference in the first place. A
+comparison can satisfy every statistical standard and still be uninformative about the
+hypothesis it purports to test.
 
-**Difficulty of partially-observed tasks.** The manipulation ladder is grounded in the
-POMDP-difficulty literature. Flickering observations (Hausknecht & Stone) and benchmark
-suites such as POPGym establish that *static* low-dimensional feature removal is often not
-enough to make a task hard for modern deep RL, and that difficulty tends to require
-temporal hidden state that must be integrated over time; frame-stacking (Mnih et al.) is the
-standard memoryless response. We use exactly these levers — removal, flicker + frame-stack,
-aliasing, sensor noise — and find, consistent with that literature, that they fail to make
-*this* task's policy hard, for reasons we trace mechanistically.
+**Construct validity and benchmark critique.** That benchmarks may not measure what they are
+taken to measure is not a new observation. Under the banner of *construct validity* — a
+concept originating in psychological measurement theory, which asks whether a test captures
+the phenomenon it claims to [Cronbach & Meehl, 1955], and recently imported into
+machine-learning evaluation critique [Raji et al., 2021] — a growing literature examines the
+epistemic foundations of ML evaluation. Recent work develops explicit conditions of construct
+validity for predictive benchmarking [Freiesleben & Zezulka, 2025] and, through large-scale
+systematic review, documents pervasive validity weaknesses across hundreds of benchmarks
+[Bean et al., 2025]. This literature is, however, almost entirely *diagnostic*: it reviews
+existing benchmarks, names the ways their validity fails, and issues design recommendations.
+What it does not provide is a constructive, executable procedure that a researcher can run
+*before* trusting a particular comparison, to establish whether a specific task can test a
+specific hypothesis. Our contribution is exactly that instrument, for one sharply-defined
+validity question — whether a task contains the structure `S` that an architecture hypothesis
+requires — with a pre-registered, pass/fail experimental outcome. We move the
+construct-validity concern from retrospective critique to a prospective test.
 
-**Architectural asymmetry and actor–critic capacity.** The hypothesis under test sits in a
-line of work on how to allocate capacity between policy and value networks and on
-architectural inductive biases more broadly. Our aim is not to adjudicate this hypothesis in
-general — we take no position on whether inverted asymmetry helps on suitable tasks — but to
-show that a specific, common style of task cannot arbitrate it, and to give the tools to
-recognise such tasks.
+**Asymmetric actor–critic architectures.** The assumption that actor and critic should share
+topology and capacity has been questioned from several directions. A recent line studies the
+*small-actor* regime, finding that shrinking the actor relative to the critic tends to degrade
+performance through value underestimation and poor data collection, and that critic-side
+optimism can recover it [Mastikhina et al., 2025]. The hypothesis we examine concerns the
+*opposite* direction — a policy network deeper than its value network ("policy-hard,
+value-easy") — motivated by the intuition that actor depth should help when the optimal policy
+is a harder function to represent than the optimal value. These two directions of asymmetry
+are not in tension. That capacity asymmetry can produce pronounced, mechanistically-explained
+effects is established on tasks that contain the relevant structure: Mastikhina et al. report
+clear effects on DeepMind Control tasks. Their result is therefore a useful counterpoint to
+ours — an instance of a task that *can* express a capacity-asymmetry effect — and sharpens
+rather than undercuts our claim, which is not that asymmetry never matters but that whether a
+*given* task can reveal it must itself be tested.
 
-**Pre-registration in machine learning.** Pre-registration — fixing hypotheses, design, and
-analysis before seeing results — is standard in the experimental sciences but rare in ML,
-where iterative tuning against a test signal is the norm. We treat it as a first-class part
-of the methodological contribution rather than a compliance step: freezing the ladder and a
-per-outcome interpretation table before any run is precisely what prevents an exhaustive
-manipulation search from degenerating into architecture-fishing, and makes a negative
-outcome as credible as a positive one. To our knowledge this discipline is under-used for
-architecture-comparison studies specifically, which is where single-seed claims are most
-tempting and least checked.
+**Partial observability and task difficulty.** Our manipulation ladder degrades observability
+in an attempt to induce a policy that is hard to represent. The canonical construction for
+making a task memory-hard is temporal masking — the flickering setup that converts an MDP into
+a POMDP by stochastically obscuring observations [Hausknecht & Stone, 2015] — which we combine
+with frame-stacking [Mnih et al., 2015] so that any resulting hardness is representable by a
+feedforward policy rather than requiring recurrence. Recent benchmark work emphasises that
+low-dimensional feature-vector POMDPs are often insufficiently difficult for modern deep RL
+unless temporal structure is deliberately injected [Morad et al., 2023], a caution our results
+bear out directly.
+
+**Pre-registration in machine learning.** Pre-registration — fixing hypotheses, protocol, and
+interpretation criteria before observing results — is long established in medicine and
+psychology, where registered reports are an accepted publication model [Chambers, 2013], but
+has seen comparatively little uptake in machine learning. Dedicated efforts to introduce it
+into machine learning include the NeurIPS Pre-registration Workshops [Bertinetto et al., 2021;
+Albanie et al., 2022], whose motivation — that an incentive structure rewarding only positive
+results suppresses informative negative findings and discourages rigorous experimental design
+— is closely aligned with ours. We adopt pre-registration not as a formality but as a
+load-bearing component of the method: because the protocol involves searching over task
+manipulations until one induces the required regime, freezing the ladder and a per-outcome
+interpretation table in advance is what prevents that search from degenerating into selection
+of whichever manipulation happens to favour a given architecture.
 
 ---
 
@@ -473,45 +511,62 @@ This is a positive control for the protocol, not a contribution about convolutio
 architectures: we claim nothing beyond the well-known fact that locality helps when it is
 present, and use it only to show the instrument reads *yes* as readily as *no*.
 
-## 7. Why this task resisted every manipulation
+## 7. Why the task resists every manipulation
 
-That no rung induced the precondition is not a failure of effort — four qualitatively
-different mechanisms were tried and capped by pre-registration. It follows from three
-concrete, mutually reinforcing properties of the task, each of which we can point to in
-the data.
+Three properties of the environment, each visible in the results above, together explain why
+no observation manipulation induced a hard-to-represent policy.
 
-**Observation redundancy.** The state is over-determined by the observation: different
-features encode the same distinction, so removing one leaves it recoverable from
-another. The sharpest instance is the aliasing rung. We dropped the region one-hot
-(in-room / hallway / doorway) expecting to make those cell-types confusable — yet the
-agent ceilinged *immediately* (IQM 27.17, faster than the un-aliased A-STRICT). The
-reason is that the five proximity sensors already encode the local wall pattern, which
-distinguishes a doorway (opening on two sides) from a corridor from an open room —
-**proximity, not the region one-hot, is the true de-aliaser**, and it was retained. To
-alias the state one must degrade *every* redundant encoding of a distinction at once;
-degrading any single one is absorbed.
+**Observation redundancy.** The 16-D observation carries several channels that each
+independently suffice for competent navigation, so removing any one of them leaves the others
+to carry the load. Removing global position (dims 9–10) leaves a ceiling (IQM 27.24
+[27.21, 27.27], all three rooms solved). Additionally removing distance-to-target (dim 11)
+also leaves a ceiling. Removing the region one-hot (dims 13–15) — the block that nominally
+encodes room, hallway, and doorway — again leaves a full ceiling (27.17 [27.04, 27.37], all
+three rooms), with a sample-efficiency (IQM 36.7k environment steps) indistinguishable from
+the richer 13-D observation's (40k). That discarding a block of the observation costs neither
+accuracy nor speed is what one expects when the block duplicates information already present
+elsewhere. The proximity sensors appear to be the operative channel: they alone distinguish
+room, hallway, and doorway cells, which is what the region one-hot nominally encoded. Yet
+proximity is not individually load-bearing either — corrupting it with 30% per-bit noise
+still ceilings (26.78 [26.41, 26.93]) with a collision rate of 0.00.
 
-**Reactive optimality.** A near-optimal action is a function of the *current* frame, not
-of history. This is why frame-stacking neutralises flicker up to `p=0.7`: with `k=4`
-stacked frames the probability that all four are simultaneously masked is small, so a
-recent true frame is almost always available, and a policy that maps the most-recent
-unmasked frame to an action suffices. Only when masking is aggressive enough that long
-all-blank runs become common (`p=0.8`) does the reactive strategy break — and then the
-policy does not gracefully degrade into a harder function, it *gives up* (the systematic
-kitchen-abandonment fracture), because nothing in the task rewards the partial,
-history-integrating competence a fair test would need.
+**Reactive optimality.** The optimal policy on this task is a function of the *current*
+observation rather than of the observation history. This is why frame-stacking neutralises
+flickering so effectively: with a stack of four frames, the agent is deprived of every recent
+frame only when four consecutive maskings occur, an event of probability `p^k` — 6.25% at
+`p=0.5` and 24% at `p=0.7` (§5). Because a single recent frame suffices to act well, the agent
+does not need to integrate across gaps; it needs only *some* frame to be recent. Flickering
+therefore attacks the *availability* of the observation, not the *complexity* of the function
+mapping observations to actions — and availability is not the quantity the policy-hard
+hypothesis concerns. The distinction becomes sharpest at `p=0.8` (41% fully-masked). Rather
+than the policy becoming gracefully harder to represent, the agent abandons the task: returns
+fall to IQM 8.95 [6.29, 13.01], failures are timeouts (0.13–0.47) rather than collisions
+(≈0), and the kitchen target is abandoned in 10 of 10 seeds while the bedroom is solved in 10
+of 10. That is an optimisation pathology — a give-up local optimum — not a representational
+demand, and it is precisely the case the S-attribution guard (§6, step 5) exists to disqualify.
 
-**A memorisable fixed map.** The single, static layout means the agent never needs a
-general navigation policy — it can encode *this* house. This is why proximity noise
-(`q=0.3`) is shrugged off with collisions at 0.00: on a memorised map the agent routes
-from the target one-hot and its own trajectory, and does not depend on reliable
-proximity readings to avoid walls, so corrupting them changes little. Degrading an input
-the optimal policy has learned not to rely on cannot make the policy harder.
+**A single memorisable layout.** The map is fixed across all episodes, with optimal path
+lengths of 11, 11, and 22 steps to the three targets (§5). A policy can therefore encode
+routes specific to this layout rather than computing them from the observation, which would
+explain both the robustness to proximity corruption (a route-following policy needs little
+reliable wall-sensing) and the distance-structured shape of the `p=0.8` collapse (the near
+target survives information gaps that the far target does not). We note this as an
+interpretation consistent with the data rather than a directly measured property; we did not
+attempt to separate route memorisation from observation-driven navigation, and doing so would
+require held-out layouts of the kind §8 specifies.
 
-Together these give a single diagnosis: information can be removed or corrupted
-extensively before the *optimal policy* becomes a genuinely harder function, because the
-task affords a cheap solution (reactive, memorised, redundantly cued) throughout. Value
-stays as easy as policy, and asymmetry has no wedge.
+**Why this closes off the observation axis.** The three properties compound into a single
+conclusion. The precondition the hypothesis requires — a policy that is hard to represent
+while the value function remains smooth — is a property of the task's *decision structure*,
+not of its observation vector. This task's decision structure is short-horizon, static, and
+reactively solvable: the optimal action is a simple function of local information, and it
+remains so however that information is delivered. Degrading the observation can make the
+information *scarcer* (flickering), *narrower* (removal), or *noisier* (corruption), but it
+cannot make the underlying function *more complex*, because the function's complexity is fixed
+by the task rather than by the channel. Hence the pattern across §5: manipulations either
+leave the simple policy intact and reachable (ceiling), or starve the agent badly enough that
+it stops attempting the task (fracture). There is no intermediate regime in which the policy
+becomes hard but learnable, because there is no hard policy to find.
 
 ## 8. What a task would need to test this hypothesis
 
