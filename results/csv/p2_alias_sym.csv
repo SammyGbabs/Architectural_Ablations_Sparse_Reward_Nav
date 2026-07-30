@@ -1,0 +1,11 @@
+phase,config_id,algo,seed,env_steps,eval_return_iqm,eval_return_mean,success_rate,collision_rate,mean_ep_len,wait_freq,sr_kitchen,sr_bedroom,sr_bathroom,len_kitchen,len_bedroom,len_bathroom,sample_eff_steps_90,n_eval_episodes,wandb_run_name
+p2,p2_alias_sym,ppo,0,200704,27.8,27.04,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,20000,15,ppo_p2_alias_sym_seed0
+p2,p2_alias_sym,ppo,1,200704,27.8,27.04,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed1
+p2,p2_alias_sym,ppo,2,200704,27.8,27.04,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed2
+p2,p2_alias_sym,ppo,3,200704,27.8,27.04,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed3
+p2,p2_alias_sym,ppo,4,200704,27.8,27.44,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed4
+p2,p2_alias_sym,ppo,5,200704,27.8,27.44,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,20000,15,ppo_p2_alias_sym_seed5
+p2,p2_alias_sym,ppo,6,200704,27.8,27.44,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed6
+p2,p2_alias_sym,ppo,7,200704,27.8,27.44,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed7
+p2,p2_alias_sym,ppo,8,200704,27.8,27.04,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,40000,15,ppo_p2_alias_sym_seed8
+p2,p2_alias_sym,ppo,9,200704,27.8,27.04,1.0,0.0,14.8,0.0,1.0,1.0,1.0,11.0,11.0,30.0,20000,15,ppo_p2_alias_sym_seed9

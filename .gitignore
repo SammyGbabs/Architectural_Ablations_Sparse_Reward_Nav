@@ -28,3 +28,6 @@ wandb/
 # Generated figure exports (PNGs are tracked; vector/PDF exports are not)
 figures/*.svg
 figures/*.pdf
+
+# positive-control MNIST cache
+data/

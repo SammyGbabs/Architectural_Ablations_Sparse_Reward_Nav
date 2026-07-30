@@ -1,0 +1,36 @@
+# =============================================================================
+# configs/p2_alias_sym.yaml
+# Phase 2 CLAIM-GRADE cell — ALIASING (10-D, drop region one-hot), SYMMETRIC, 10 seeds.
+# Track-1-directed ceiling: region one-hot was redundant given proximity, so the
+# single-seed gate ceilinged immediately (IQM 27.80 by 20k). Multi-seed confirms.
+# Hyperparameters VERBATIM from ppo_exp1.yaml. Only obs_rung differs.
+# =============================================================================
+
+config_id: p2_alias_sym
+phase: p2                  # per-seed CSV -> <out>/csv/p2_alias_sym.csv
+algo: ppo
+policy: MlpPolicy
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: ReLU
+ortho_init: true
+
+lr: 0.0002
+gamma: 0.990
+batch_size: 256
+n_steps: 2048
+n_epochs: 10
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.020
+
+n_seeds: 10
+env_steps: 200000          # aliasing converged ~20k single-seed; 200k = ample margin
+
+eval_freq: 20000
+eval_episodes: 15
+
+# --- Phase 2 observation wrapper ---
+obs_rung: rung4            # A-STRICT - region one-hot -> 10-D

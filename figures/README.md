@@ -45,6 +45,11 @@ The single source of truth for what figures exist, what they show, and how they 
 | `p1_iqm_main_configs.png` | `Analysis/rliable_analysis.py` | `results/csv/p1_*.csv` | pending first sweep | poster (centerpiece), paper §5.1 | IQM eval return + 95% CI for the 9 main configs (PPO Exp 1-4, DQN Exp 1-5) |
 | `p1_perf_profile_ppo_inverted_vs_symmetric.png` | `Analysis/rliable_analysis.py` | `results/csv/p1_ppo_exp{1,4}.csv` | pending first sweep | poster, paper §5.1 (H1) | H1 performance profile: PPO inverted (Exp 4) vs symmetric (Exp 1) |
 | `p1_sample_efficiency_ppo_vs_dqn.png` | `Analysis/rliable_analysis.py` | `results/csv/p1_*.csv` | pending first sweep | poster, paper §5.1 | IQM env-steps-to-90% (+CI), PPO vs DQN; checks the original ~12.5× claim |
+| `p2_rung3_blackout_vs_p.png` | `Analysis/rung3_difficulty_model.py` | env grid (BFS) + closed-form | 2026-07-02 | Phase 2 calibration | P(disabling blackout ≥1/episode) vs flicker p, per room (real H), hard-but-learnable band shaded |
+| `p2_rung3_observed_vs_predicted.png` | `Analysis/rung3_difficulty_model.py` | env grid + gate results_log | 2026-07-02 | Phase 2 calibration | H-model predicted difficulty vs observed per-room difficulty at p=0.5/0.7/0.8 — shows H is NOT the mechanism |
+| `p2_ladder_iqm.png` | `Analysis/plot_p2_ladder.py` | `results/csv/p2_*_sym.csv` | 2026-07-04 | paper §5 (results) | Per-cell IQM+95% CI (10 seeds); three ceilings vs the p=0.8 fracture, ceiling reference. flicker07 auto-adds when its CSV lands |
+| `p2_flicker08_perseed.png` | `Analysis/plot_p2_ladder.py` | `results/csv/p2_flicker08_sym.csv` | 2026-07-04 | paper §5 (fracture) | p=0.8 per-seed outcome split (timeouts not collisions) + per-room SR heatmap (kitchen abandoned 10/10) |
+| `pc_dose_response.png` | `Analysis/positive_control.py plot` | `results/csv/positive_control.csv` | 2026-07-10 | paper §(positive control) | CNN vs param-matched MLP test-acc (IQM+CI, 10 seeds) vs scramble fraction q; the gap tracks spatial locality — appears at q=0, vanishes/inverts by q=1 |
 
 *(Add new rows below as figures land. Mark retired figures with `~~strikethrough~~` rather than deleting them — provides audit trail.)*
 
