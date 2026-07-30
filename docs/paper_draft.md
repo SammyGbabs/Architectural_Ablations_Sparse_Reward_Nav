@@ -17,7 +17,7 @@ each caption).
 Empirical architecture comparisons carry an implicit assumption: that the benchmark can
 actually *test* the hypothesis — that the task contains the structure the architecture
 is meant to exploit. When it does not, a null is uninformative and a single-seed positive
-is unfalsifiable noise, yet both are routinely reported as evidence. We give a
+is unfalsifiable noise, yet both are often reported as evidence. We give a
 **pre-registered protocol for deciding whether a task can test an architecture hypothesis
 at all**, before trusting any comparison run on it: state the structural precondition the
 hypothesis requires; build a graded manipulation ladder that targets it; gate each rung
@@ -40,7 +40,7 @@ represent) or **fractures** into a give-up local optimum (hard, but not in the w
 hypothesis specifies). We report this as a worked *negative outcome of the protocol*, not
 as evidence against asymmetry: this task class cannot arbitrate the hypothesis, which may
 still hold on a task meeting the specification we derive. The contribution is the reusable
-check — and the finding that a widely-used style of benchmark silently fails it.
+check — and the finding that a common style of benchmark silently fails it.
 
 ## 2. Introduction
 
@@ -130,7 +130,7 @@ requires — with a pre-registered, pass/fail experimental outcome. We move the
 construct-validity concern from retrospective critique to a prospective test.
 
 **Asymmetric actor–critic architectures.** The assumption that actor and critic should share
-topology and capacity has been questioned from several directions. A recent line studies the
+topology and capacity has been questioned from more than one direction. A recent line studies the
 *small-actor* regime, finding that shrinking the actor relative to the critic tends to degrade
 performance through value underestimation and poor data collection, and that critic-side
 optimism can recover it [Mastikhina et al., 2025]. The hypothesis we examine concerns the
@@ -139,7 +139,7 @@ value-easy") — motivated by the intuition that actor depth should help when th
 is a harder function to represent than the optimal value. These two directions of asymmetry
 are not in tension. That capacity asymmetry can produce pronounced, mechanistically-explained
 effects is established on tasks that contain the relevant structure: Mastikhina et al. report
-clear effects on DeepMind Control tasks. Their result is therefore a useful counterpoint to
+clear effects on the control benchmarks they study. Their result is therefore a useful counterpoint to
 ours — an instance of a task that *can* express a capacity-asymmetry effect — and sharpens
 rather than undercuts our claim, which is not that asymmetry never matters but that whether a
 *given* task can reveal it must itself be tested.
@@ -518,20 +518,25 @@ no observation manipulation induced a hard-to-represent policy.
 
 **Observation redundancy.** The 16-D observation carries several channels that each
 independently suffice for competent navigation, so removing any one of them leaves the others
-to carry the load. Removing global position (dims 9–10) leaves a ceiling (IQM 27.24
-[27.21, 27.27], all three rooms solved). Additionally removing distance-to-target (dim 11)
-also leaves a ceiling. Removing the region one-hot (dims 13–15) — the block that nominally
-encodes room, hallway, and doorway — again leaves a full ceiling (27.17 [27.04, 27.37], all
-three rooms), with a sample-efficiency (IQM 36.7k environment steps) indistinguishable from
-the richer 13-D observation's (40k). That discarding a block of the observation costs neither
-accuracy nor speed is what one expects when the block duplicates information already present
-elsewhere. The proximity sensors appear to be the operative channel: they alone distinguish
-room, hallway, and doorway cells, which is what the region one-hot nominally encoded. Yet
-proximity is not individually load-bearing either — corrupting it with 30% per-bit noise
-still ceilings (26.78 [26.41, 26.93]) with a collision rate of 0.00.
+to carry the load. The cumulative case is the clearest: six of the sixteen dimensions can be
+removed — global position (dims 9–10), distance-to-target (dim 11), and the region one-hot
+(dims 13–15) — and the task is still solved completely, with all three target rooms reached
+in 100% of episodes (IQM 27.17 [27.04, 27.37] at 10-D, against 27.66 [27.56, 27.78] for the
+full 16-D observation). The half-point difference is statistically resolvable but is a
+path-length tax rather than a loss of capability: the agent still reaches every target,
+taking marginally longer to do so. Nor is any single channel necessary in isolation. Removing
+global position alone leaves a ceiling; additionally removing distance-to-target leaves a
+ceiling (27.24 [27.21, 27.27]); additionally removing the region one-hot leaves a ceiling, at
+no detectable cost in sample efficiency either (36.7k versus 40.0k environment steps to 90%
+of asymptote, a difference within seed noise). The proximity sensors appear to be the
+operative channel — they alone distinguish room, hallway, and doorway cells, which is what
+the region one-hot nominally encoded — yet even proximity's reliability is dispensable:
+corrupting it with 30% per-bit noise still ceilings (26.78 [26.41, 26.93]) at a collision
+rate of 0.00. The observation is over-determined for this task.
 
-**Reactive optimality.** The optimal policy on this task is a function of the *current*
-observation rather than of the observation history. This is why frame-stacking neutralises
+**Reactive optimality.** The optimal policy on this task appears to be well approximated by a
+function of the *current* observation rather than of the observation history. This is why
+frame-stacking neutralises
 flickering so effectively: with a stack of four frames, the agent is deprived of every recent
 frame only when four consecutive maskings occur, an event of probability `p^k` — 6.25% at
 `p=0.5` and 24% at `p=0.7` (§5). Because a single recent frame suffices to act well, the agent
@@ -561,9 +566,10 @@ while the value function remains smooth — is a property of the task's *decisio
 not of its observation vector. This task's decision structure is short-horizon, static, and
 reactively solvable: the optimal action is a simple function of local information, and it
 remains so however that information is delivered. Degrading the observation can make the
-information *scarcer* (flickering), *narrower* (removal), or *noisier* (corruption), but it
-cannot make the underlying function *more complex*, because the function's complexity is fixed
-by the task rather than by the channel. Hence the pattern across §5: manipulations either
+information *scarcer* (flickering), *narrower* (removal), or *noisier* (corruption), but on
+this task none of these made the underlying decision function *more complex* — its complexity
+is set by the task's short-horizon, static, reactively-solvable structure, not by how the
+observation is delivered. Hence the pattern across §5: manipulations either
 leave the simple policy intact and reachable (ceiling), or starve the agent badly enough that
 it stops attempting the task (fracture). There is no intermediate regime in which the policy
 becomes hard but learnable, because there is no hard policy to find.
@@ -604,7 +610,10 @@ cheap, pre-registered manipulation ladder with single-seed learnability gates ma
 check affordable, and its outcome — which rung, if any, is hard-but-learnable — tells you
 where (or whether) to spend a claim-grade comparison. Pre-registration is doing real work
 here: it converts an open-ended "try architectures until one wins" into a bounded,
-falsifiable procedure whose negative outcomes are as informative as its positive ones.
+falsifiable procedure whose negative outcomes are as informative as its positive ones. In the
+terms of §3, this operationalises the construct-validity question — does this benchmark
+measure what we take it to? — as a prospective, pass/fail experiment run *before* a comparison
+rather than a retrospective critique delivered after the fact.
 
 We are careful about the scope of our negative result. We have shown that **this task —
 and, by the mechanism of §7, static single-map gridworld navigation with a redundant,
