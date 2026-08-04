@@ -13,6 +13,7 @@ Cells (execution order = front-loaded by argument-criticality x cost):
   3. p2_flicker08_sym  flicker p=0.8 52-D       200k   fracture claim (distinct)
   4. p2_proxnoise_sym  prox-noise q=0.3 13-D    200k   closing rung
   5. p2_flicker07_sym  flicker p=0.7 52-D       500k   COMPUTE SINK — HOLD (needs --include-hold)
+  6. p2_flicker08_500k_sym flicker p=0.8 52-D   500k   budget-parity replication of p=0.8 — HOLD (use --only)
 
 Reuses the Phase 1 sweep machinery (deterministic ids, resume="allow", .done
 markers, per-run subprocess) via Training.run_sweep. The expensive p=0.7 x 500k
@@ -41,14 +42,21 @@ PHASE2_ORDER = [
     "p2_alias_sym",
     "p2_flicker08_sym",
     "p2_proxnoise_sym",
-    "p2_flicker07_sym",   # HOLD — 500k x 10, gated behind --include-hold
+    "p2_flicker07_sym",        # HOLD — 500k x 10, gated behind --include-hold
+    "p2_flicker08_500k_sym",   # HOLD — 500k x 10 budget-parity replication of p=0.8
 ]
-HOLD_CELLS = {"p2_flicker07_sym"}
+HOLD_CELLS = {"p2_flicker07_sym", "p2_flicker08_500k_sym"}
 ALGO = "ppo"              # all Phase 2 cells are symmetric PPO
 
 
-def build_queue(include_hold: bool = False) -> list[RunSpec]:
-    """Ordered 10-seed queue over the Phase 2 cells (hold cells excluded unless asked)."""
+def build_queue(include_hold: bool = False, only: str | None = None) -> list[RunSpec]:
+    """Ordered 10-seed queue over the Phase 2 cells.
+
+    ``only`` runs exactly one cell (10 seeds) and bypasses both PHASE2_ORDER and the
+    HOLD gate — the explicit "launch a single cell in isolation" path. Otherwise the
+    full ordered queue is built, with HOLD cells excluded unless ``include_hold``."""
+    if only:
+        return run_specs(ALGO, only, "main")       # single cell, 10 seeds, HOLD-independent
     queue: list[RunSpec] = []
     for cid in PHASE2_ORDER:
         if cid in HOLD_CELLS and not include_hold:
@@ -58,11 +66,11 @@ def build_queue(include_hold: bool = False) -> list[RunSpec]:
 
 
 def run_sweep(args: argparse.Namespace) -> int:
-    queue = build_queue(include_hold=args.include_hold)
+    queue = build_queue(include_hold=args.include_hold, only=args.only)
     if args.limit:
         queue = queue[: args.limit]
 
-    held = "" if args.include_hold else f"  (HOLD excluded: {sorted(HOLD_CELLS)})"
+    held = "" if (args.include_hold or args.only) else f"  (HOLD excluded: {sorted(HOLD_CELLS)})"
     if args.dry_run:
         print(f"Phase 2 claim-grade sweep - {len(queue)} runs (symmetric-only){held}:\n")
         print(format_queue(queue))
@@ -108,8 +116,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--sweep-tag", type=str, default="p2v1",
                    help="W&B namespace tag (distinct from Phase 1's). '' disables.")
     p.add_argument("--include-hold", action="store_true",
-                   help="Include the held compute-sink cell (p2_flicker07_sym, 500k x 10). "
+                   help="Include the held compute-sink cells (500k x 10). "
                         "Only pass this after explicit confirmation.")
+    p.add_argument("--only", type=str, default=None,
+                   help="Run ONLY this config_id (10 seeds), bypassing PHASE2_ORDER and "
+                        "the HOLD gate — launch a single cell in isolation, e.g. "
+                        "--only p2_flicker08_500k_sym.")
     p.add_argument("--dry-run", action="store_true",
                    help="Print the ordered queue and exit (launch nothing).")
     p.add_argument("--keep-going", action="store_true")

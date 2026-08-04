@@ -1,0 +1,48 @@
+# =============================================================================
+# configs/p2_flicker08_500k_sym.yaml
+# Phase 2 CLAIM-GRADE cell — FLICKER p=0.8 + frame-stack k=4 (52-D), SYMMETRIC, 10 seeds.
+# BUDGET-PARITY replication of p2_flicker08_sym at 500k (matching the p=0.7 cell),
+# to answer the reviewer's "fracture vs under-trained p=0.7" question at MATCHED budget.
+#
+# DELIBERATELY a distinct config_id (NOT an in-place env_steps bump on
+# p2_flicker08_sym): run identity is (algo, config_id, seed) with no budget
+# component, so reusing the id would reuse the CSV / .done markers / W&B run id and
+# clobber-or-skip the committed 200k fracture results. Separate id => fresh
+# <out>/csv/p2_flicker08_500k_sym.csv, fresh markers, fresh W&B ids; the 200k data
+# (p2_flicker08_sym.csv) is preserved so the fracture can be shown at BOTH budgets.
+#
+# Hyperparameters VERBATIM from ppo_exp1.yaml / p2_flicker08_sym.yaml. Only the
+# budget differs from p2_flicker08_sym (env_steps 200k -> 500k).
+# =============================================================================
+
+config_id: p2_flicker08_500k_sym
+phase: p2                  # per-seed CSV -> <out>/csv/p2_flicker08_500k_sym.csv
+algo: ppo
+policy: MlpPolicy
+
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+activation_fn: ReLU
+ortho_init: true
+
+lr: 0.0002
+gamma: 0.990
+batch_size: 256
+n_steps: 2048
+n_epochs: 10
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.020
+
+n_seeds: 10
+env_steps: 500000          # budget parity with p2_flicker07_sym (p=0.7); tests whether
+                           # the p=0.8 give-up is a fracture, not under-training
+
+eval_freq: 20000
+eval_episodes: 15
+
+# --- Phase 2 observation wrapper ---
+obs_rung: rung3b           # A-STRICT -> flicker(p) -> frame-stack(k) -> 52-D
+flicker_p: 0.8
+stack_k: 4
