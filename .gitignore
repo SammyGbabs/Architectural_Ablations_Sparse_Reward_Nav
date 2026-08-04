@@ -31,3 +31,17 @@ figures/*.pdf
 
 # positive-control MNIST cache
 data/
+
+# LaTeX build (paper/) — track the source (main.tex, *.sty, *.bst, references.bib);
+# ignore compiled output and intermediates. The packaged supplementary archive
+# (paper/supplementary_material.zip) is already covered by the global *.zip rule above.
+paper/*.pdf
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.toc

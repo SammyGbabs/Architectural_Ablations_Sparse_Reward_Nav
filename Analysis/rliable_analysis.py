@@ -351,9 +351,15 @@ _log(f"  final-return CIs overlap?     : {'YES' if ov_pd else 'NO'}")
 
 
 def sample_eff_iqm(config_id: str, reps: int = REPS):
-    """IQM + CI of steps-to-90% over NON-NaN seeds; (iqm, lo, hi, n_valid)."""
+    """IQM + CI of steps-to-90% over seeds that ACTUALLY reached 90%; (iqm, lo, hi, n_valid).
+
+    `sample_eff_steps_90 == -1` is the sentinel for "never reached 90% of the asymptotic
+    eval-return IQM within budget". It must be excluded before aggregating — averaging a
+    -1 into a step count is meaningless and silently drags the IQM downward (this is the
+    bug that produced the earlier 30.0k/18.3k figures for PPO Exp 4 / DQN Exp 2 instead of
+    the correct 32.0k/20.0k). Blanks (NaN) are excluded for the same reason."""
     raw = np.asarray(FRAMES[config_id][SAMPLE_EFF_COL], dtype=float)
-    valid = raw[~np.isnan(raw)]
+    valid = raw[(~np.isnan(raw)) & (raw > 0)]
     if valid.size < 3:
         return (np.nan, np.nan, np.nan, int(valid.size))
     pts, cis = iqm_interval_estimates({LABELS[config_id]: valid.reshape(-1, 1)}, reps)
@@ -581,11 +587,16 @@ for rows, color, grp in ((ppo_se, sns.color_palette("tab10")[0], "PPO"),
 ax.set_yticks(yticks); ax.set_yticklabels(ylabels)
 ax.set_xlabel("Sample efficiency — IQM env-steps to 90% asymptote (×10³, LOWER = better)")
 ax.set_title("PPO vs DQN sample efficiency (95% CI)")
-# annotate the representative ratio if available
-if np.isfinite(se_ppo[0]) and np.isfinite(se_dqn[0]) and se_ppo[0] > 0:
-    ax.annotate(f"{se_dqn[0] / se_ppo[0]:.1f}× PPO advantage\n(paper claimed ~12.5×)",
+# Annotate the finding, NOT a single representative ratio. The earlier
+# "{ratio}× PPO advantage" inset was orphaned: with the family-distribution framing
+# there is no single ratio, and the representative ratio (~0.5×) actually ran opposite
+# to the label (DQN faster). State what the plot shows instead.
+if ppo_se and dqn_se:
+    ax.annotate("PPO and DQN step-to-90% distributions overlap;\n"
+                "no resolvable PPO advantage (slowest config is PPO)\n"
+                "— original single-run claim was ~12.5×",
                 xy=(0.97, 0.05), xycoords="axes fraction", ha="right", va="bottom",
-                fontsize=10, bbox=dict(boxstyle="round", fc="w", ec="0.6"))
+                fontsize=9, bbox=dict(boxstyle="round", fc="w", ec="0.6"))
 from matplotlib.lines import Line2D
 ax.legend(handles=[Line2D([0], [0], marker="o", color="w",
                           markerfacecolor=sns.color_palette("tab10")[0], label="PPO"),

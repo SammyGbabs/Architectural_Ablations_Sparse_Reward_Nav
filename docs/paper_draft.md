@@ -30,11 +30,11 @@ single-seed advantage disappears (IQM 27.56 vs 27.66, overlapping 95% CIs,
 P(inverted > symmetric) = 0.25), and the ≈12.5× PPO sample-efficiency advantage we had earlier
 reported likewise does not survive a defined, step-based, multi-seed measurement: four of the
 five DQN configurations reach 90% of asymptotic return faster than any PPO configuration, the
-slowest configuration in either family is a PPO one, and the ratio's confidence interval spans
-parity — there is no resolvable PPO advantage, and the point estimates if anything favour DQN.
+slowest configuration in either family is a PPO one, and the two families' step-to-90%
+distributions overlap — there is no resolvable PPO advantage, and the point estimates if anything favour DQN.
 A pre-registered observability ladder
-— four degradation mechanisms, each a dated amendment — then shows *why* the asymmetry
-question cannot be settled here: no manipulation places the task in the regime the
+— four degradation mechanisms, extended by dated amendment as each proved insufficient —
+then shows *why* the asymmetry question cannot be settled here: no manipulation places the task in the regime the
 hypothesis needs. Every rung either **ceilings** (the optimal policy stays easy to
 represent) or **fractures** into a give-up local optimum (hard, but not in the way the
 hypothesis specifies). We report this as a worked *negative outcome of the protocol*, not
@@ -73,8 +73,8 @@ spatial locality, attention suits long-range dependency. Such a hypothesis is on
 on a task that actually contains `S`. Where `S` is absent, `A` has nothing to act on: the
 hypothesis predicts no effect *by construction*, so a null is uninformative and any
 single-seed win is noise dressed as evidence. Nothing in a standard train-and-evaluate loop
-flags this — the task quietly fails to pose the question, and the experiment quietly answers
-a different one.
+flags this: the task fails to pose the question, and the experiment answers a different one —
+both without any visible symptom.
 
 We arrived at this through a concrete claim of our own. In earlier, unpublished experiments
 of ours, an inverted actor–critic asymmetry — a policy network deeper than its value network
@@ -169,7 +169,7 @@ of whichever manipulation happens to favour a given architecture.
 
 ---
 
-## 4. Phase 1 — the reported effects do not survive, and their absence is not yet an answer
+## 4. Phase 1 — the reported effects do not survive, and their disappearance is not yet an answer
 
 We begin by holding the two claims from our earlier unpublished experiments to the evaluation
 standard the reproducibility
@@ -185,6 +185,33 @@ concrete symptom of the gap §5 then diagnoses.
 the two architectures — symmetric and inverted — with otherwise identical PPO
 hyperparameters (verbatim from those earlier experiments' configurations) for a fixed 200k-step
 budget, at **10 seeds each**, and aggregate with rliable. [P1-MS]
+
+**The nine configurations, and why DQN is among them.** The two architectures above are
+the endpoints of a four-point PPO sweep over the actor:critic capacity ratio at fixed
+budget; the other five configurations are DQN and carry no asymmetry signal at all. They
+are present because Phase 1 holds *two* claims from the earlier work to account, and the
+second (Result 2, below) is a PPO-vs-DQN sample-efficiency comparison — so the five DQN
+runs are the value-based comparator family for that claim, not part of the asymmetry
+test. The PPO configurations vary essentially only the actor:critic ratio; the DQN
+configurations (a single Q-network, no actor–critic split) vary width, discount,
+exploration schedule, and buffer, and include two deliberately destabilised settings
+retained to replicate the original paper's DQN table faithfully. All nine share the
+frozen environment, the 200k-step budget, and 10 seeds.
+
+**Table 1.** The nine Phase-1 configurations. PPO spans the actor:critic ratio (H1); DQN
+is the value-based comparator family for the sample-efficiency claim (Result 2).
+
+| Family | Config | Network (actor π / critic v; DQN: Q-net) | Ratio / role |
+|---|---|---|---|
+| PPO (actor–critic; H1) | Exp 1 | π [256,256] / v [256,256] | symmetric 1:1 — the control |
+|  | Exp 2 | π [256,256] / v [512,256] | conventional (wider critic) |
+|  | Exp 3 | π [128,128] / v [512,512,256] | conventional (deep critic) |
+|  | Exp 4 | π [512,256,128] / v [256,128] | **inverted** (deeper actor) — headline |
+| DQN (value-based; comparator) | Exp 1 | Q [256,256] | slow ε-decay |
+|  | Exp 2 | Q [512,256], γ=0.995 | discount variant |
+|  | Exp 3 | Q [512,256] | aggressive ε-decay, high lr (destabilised) |
+|  | Exp 4 | Q [1024,512] | low lr, high γ (unstable) |
+|  | Exp 5 | Q [512,256], γ=0.99 | original best DQN |
 
 **Result 1 — the asymmetry advantage does not survive multiple seeds.** Under
 10-seed evaluation the two architectures are statistically indistinguishable: IQM
@@ -209,8 +236,10 @@ duration; the currency the agent actually spends, and that the two algorithms sh
 *environment steps*. **(b) "Stable high performance" is eyeballed.** A convergence point
 identified by eye has no defined threshold, and, read off a single curve, carries no
 uncertainty. **(c) It is a single run** — and §4's own H1 data shows how misleading single
-runs are on this task, where one PPO seed collapses to a return of 3.6 while its nine
-siblings sit at ~27.6.
+runs are on this task, where one *inverted*-configuration seed (Exp 4, seed 8) collapses
+to a return of 3.6 — a collision local optimum — while its nine siblings sit at ~27.6,
+and the symmetric configuration has no collapsed seed at all (this asymmetric collapse is
+the only asymmetry-shaped signal anywhere in the H1 data).
 
 Re-measured with a defined, step-based, multi-seed statistic — environment steps to reach
 90% of the asymptotic eval-return IQM, over 10 seeds, aggregated with rliable [Agarwal et
@@ -224,13 +253,13 @@ configuration that leaves it, PPO Exp 3 at 163.3k steps, is the *slowest* of eit
 so on an exemplar-independent reading PPO is no faster than DQN, and the one salient
 difference runs opposite to the claimed 12.5× advantage.
 
-These two results are one finding stated twice. The asymmetry claim put a question to a
-*task* that could not answer it — a benchmark lacking the structure the hypothesis is about.
-The sample-efficiency claim put a question to a *measurement* that could not answer it — a
-metric that cannot separate sample efficiency from episode duration, nor one run's eyeballed
-convergence point from noise. In both, the instrument was incapable of resolving the
-question asked of it, and an incapable instrument returns a confident-looking number either
-way. That is why neither number is yet an answer, and why the rest of the paper is concerned
+These two results are two instances of a single pattern. The asymmetry claim put a question
+to a *task* that could not answer it — a benchmark lacking the structure the hypothesis is
+about. The sample-efficiency claim put a question to a *measurement* that could not answer
+it — a metric that cannot separate sample efficiency from episode duration, nor one run's
+eyeballed convergence point from noise. In both cases the instrument was incapable of
+resolving the question asked of it; what differs is only which instrument failed, the *task*
+or the *metric*. That is why neither number is yet an answer, and why the rest of the paper is concerned
 less with re-scoring individual claims than with the prior question of whether the task and
 the measurement can support the claim at all.
 
@@ -311,9 +340,9 @@ geometry-, not distance-, driven. (`figures/p2_rung3_observed_vs_predicted.png`)
 
 **Claim-grade results.** [P2-MS] For a *standard* (symmetric) PPO agent — Exp 1
 hyperparameters verbatim, 10 seeds, rliable IQM + 95% CI — every cell either ceilings
-or fractures; none is hard-but-learnable (Table 1; Figure 6):
+or fractures; none is hard-but-learnable (Table 2; Figure 6):
 
-**Table 1.** Phase 2 claim-grade ladder cells — symmetric PPO, 10 seeds, rliable IQM + 95% CI.
+**Table 2.** Phase 2 claim-grade ladder cells — symmetric PPO, 10 seeds, rliable IQM + 95% CI.
 
 | Cell | obs | steps | IQM eval return (95% CI) | per-room SR (k/bed/bath) | outcome |
 |---|---|---|---|---|---|
@@ -323,8 +352,8 @@ or fractures; none is hard-but-learnable (Table 1; Figure 6):
 | Flicker p=0.7 | 52-D | 500k | 26.14 [25.42, 26.32] | 1.00/1.00/1.00 | ceiling (slow) |
 | Flicker p=0.8 | 52-D | 200k | 8.95 [6.29, 13.01] | 0.00/1.00/0.33 | **fracture** |
 
-**Figure 6.** The ladder cells of Table 1 plotted: per-cell IQM eval return + 95% CI — four
-ceilings clustered near the 27.8 reference vs the p=0.8 fracture isolated at 8.95.
+**Figure 6.** The ladder cells of Table 2 plotted: per-cell IQM eval return + 95% CI — four
+ceilings clustered near the 27.8 optimal-path ceiling vs the p=0.8 fracture isolated at 8.95.
 (`figures/p2_ladder_iqm.png`)
 
 Three observations are decisive. **First, the ceilings are real ceilings, not slow
@@ -333,17 +362,34 @@ three rooms with tight CIs, prox-noise does so at a collision rate of 0.00 (the 
 is absorbed, not lethal), and even the hardest *learnable* flicker (`p=0.7`) reaches
 the ceiling given budget — 9/10 seeds at full success (the tenth, seed 9, plateaus
 partway with bathroom SR 0.33; the IQM trims it, but we note it exists), the ~1.6 gap
-below 27.8 being a path-length tax from occasional blackouts, not sub-ceiling difficulty. **Second, the
+below the 27.8 optimal-path ceiling (R(11)=27.8 is the optimal return for the two near
+rooms, which the trimmed IQM tracks; the full-16-D symmetric configuration itself sits
+just under it at IQM 27.66) being a path-length tax from occasional blackouts, not
+sub-ceiling difficulty. **Second, the
 one cell that leaves the ceiling does not become hard-but-learnable — it fractures:**
 at `p=0.8`, IQM collapses to 8.95 and the failure is a *systematic give-up*, robust
 across all 10 seeds — **kitchen is abandoned in 10/10 seeds and bedroom solved in
 10/10** (Figure 7), with failures being timeouts, not collisions.
+(This cell was run at the 200k base budget, not the 500k the `p=0.7` cell required; we
+flag the asymmetry rather than hide it. The collapse is a fracture, not under-training:
+the per-room outcome is bimodal and *settled* — bedroom solved and kitchen abandoned in
+10/10 seeds, an equidistant pair — the signature of a converged degenerate policy, not of
+uniform sub-ceiling progress that more steps would lift. A matched-budget 500k
+replication is the definitive check, and is the one confirmation run this paper leaves
+open.)
 That is a degenerate local optimum, not the graceful partial competence a fair
 architecture test needs. **Third, this exhausts the axis:** across removal, flicker,
-aliasing, and sensor noise — the pre-registered cap on single-map observation
-degradation — no rung meets the precondition. On this task, the H1 asymmetry
+aliasing, and sensor noise — the pre-registered set of single-map observation
+degradations (the pre-registration caps the ladder at these four mechanisms on the fixed
+20×20 map; any further degradation is deemed a different task under a separate Phase-3
+pre-registration) — no rung meets the precondition. On this task, the H1 asymmetry
 hypothesis is **untestable**: the null of §4 is a fact about the task, not (on this
-evidence) about the hypothesis.
+evidence) about the hypothesis. Note what this means for the pre-registered primary
+endpoint. That endpoint — the inverted−symmetric IQM gap — is defined only on a rung that
+passes the step-5 `S`-attribution guard, and no rung did: every cell either ceilinged or
+fractured. The gap was therefore never computed on a qualifying cell, and Table 2 is
+symmetric-only for exactly that reason. The non-computation *is* the result — there was no
+cell on which measuring the architecture gap would have meant anything.
 
 **Figure 7.** The p=0.8 fracture, per seed — left: outcome split (success / timeout /
 collision), showing failures are timeouts not collisions; right: per-room success-rate
@@ -386,7 +432,9 @@ worked example that instantiates it.
 > 4. **Promote load-bearing rungs to multi-seed — claim-grade.** For the rungs a
 >    conclusion rests on, run enough seeds for stratified-bootstrap confidence intervals
 >    (report IQM + CI, not single-seed point estimates). Stage compute if needed
->    (decision-grade first, archival-grade before publication).
+>    (decision-grade — a handful of seeds, enough to make the go/no-go call — first;
+>    archival-grade — the full pre-registered seed count with confidence intervals —
+>    before publication).
 > 5. **Read the ladder — and attribute the hardness.** If some rung is
 >    **hard-but-learnable** — baseline sub-ceiling but improving — do not stop at "it's
 >    hard." Verify the hardness is attributable to `S` *specifically*, and not to a
@@ -418,11 +466,14 @@ screened for the price of one claim-grade cell, and expensive seeds are spent on
 a conclusion actually rests. Together they turn "our architecture idea didn't win" into
 a falsifiable, cheap-to-run diagnostic about the benchmark.
 
-The test of whether this protocol is genuinely reusable is that its five steps never
-mention navigation, observations, or reinforcement learning: a reader studying
-width-versus-depth on a regression benchmark, or attention-versus-convolution on a
-sequence task, instantiates `S` with their own structure (input frequency content;
-dependency range) and follows the identical procedure. Our study fixes `A` = inverted
+That the five steps never mention navigation, observations, or reinforcement learning is a
+necessary condition for reusability, not a demonstration of it — domain-agnostic phrasing is
+cheap. The demonstration is §6.1, where the same five steps, instantiated on image
+classification with `A` = convolution and `S` = spatial locality, return a positive verdict,
+where the navigation instantiation returned a negative one. A reader studying
+width-versus-depth on a regression benchmark, or attention-versus-convolution on a sequence
+task, instantiates `S` with their own structure — input frequency content, dependency range —
+and follows the identical procedure. Our study fixes `A` = inverted
 actor–critic asymmetry, `S` = a policy that is hard to represent while the value stays
 smooth, the ladder = graded observation degradation, and finds no rung satisfies the
 precondition — the concrete shape of one negative outcome the protocol can return.
@@ -450,16 +501,16 @@ widest. Design, predictions, and interpretation table were pre-registered before
 | 0.75 | 93.59 [93.25, 93.89] | 95.77 [95.68, 95.85] | −2.18 |
 | 1.00 | 93.18 [92.93, 93.45] | 95.70 [95.60, 95.82] | −2.52 |
 
-**Table 2.** Positive-control dose-response — CNN vs parameter-matched MLP test accuracy
+**Table 3.** Positive-control dose-response — CNN vs parameter-matched MLP test accuracy
 (IQM + 95% CI, 10 seeds) at each scramble fraction `q`.
 
-**Figure 8.** The dose-response of Table 2 plotted: CNN and MLP test accuracy vs scramble
+**Figure 8.** The dose-response of Table 3 plotted: CNN and MLP test accuracy vs scramble
 fraction `q`, with 95% CI bands and the shrinking gap; the CNN starts high, declines
 monotonically, and crosses the flat MLP near `q≈0.55`. (`figures/pc_dose_response.png`)
 
 Figure 8 shows the dose–response. The frozen predictions were: **P1**, the CNN degrades
-monotonically as `q → 1`; **P2**, the MLP stays flat (it is invariant to a fixed permutation
-of its inputs); **P3**, the gap is large at `q=0` and closes to ≈0 at `q=1`; **P4**, the
+monotonically as `q → 1`; **P2**, the MLP's achievable accuracy is identical (the learning problem is unchanged up
+to a relabeling of input units, and the MLP hypothesis class is closed under that relabeling); **P3**, the gap is large at `q=0` and closes to ≈0 at `q=1`; **P4**, the
 protocol therefore reports the task *can* test `A`-suits-`S` at `q=0` and *cannot* at `q=1`.
 P1 held (CNN IQM 97.98 → 93.18, monotone). P4 held: at `q=0` the CNN leads by **+2.15 points
 with disjoint 95% CIs** — a resolvable effect — while at `q=1` there is no positive gap to
@@ -545,7 +596,7 @@ therefore attacks the *availability* of the observation, not the *complexity* of
 mapping observations to actions — and availability is not the quantity the policy-hard
 hypothesis concerns. The distinction becomes sharpest at `p=0.8` (41% fully-masked). Rather
 than the policy becoming gracefully harder to represent, the agent abandons the task: returns
-fall to IQM 8.95 [6.29, 13.01], failures are timeouts (0.13–0.47) rather than collisions
+fall to IQM 8.95 [6.29, 13.01], failures are timeouts (a per-seed timeout fraction of 0.13–0.47 of episodes) rather than collisions
 (≈0), and the kitchen target is abandoned in 10 of 10 seeds while the bedroom is solved in 10
 of 10. That is an optimisation pathology — a give-up local optimum — not a representational
 demand, and it is precisely the case the S-attribution guard (§6, step 5) exists to disqualify.
@@ -554,8 +605,10 @@ demand, and it is precisely the case the S-attribution guard (§6, step 5) exist
 lengths of 11, 11, and 22 steps to the three targets (§5). A policy can therefore encode
 routes specific to this layout rather than computing them from the observation, which would
 explain both the robustness to proximity corruption (a route-following policy needs little
-reliable wall-sensing) and the distance-structured shape of the `p=0.8` collapse (the near
-target survives information gaps that the far target does not). We note this as an
+reliable wall-sensing) and the geometry-structured shape of the `p=0.8` collapse (which rooms survive tracks
+their approach geometry, not their distance — the two *equidistant* near rooms diverge,
+bedroom solved and kitchen abandoned, consistent with the geometry-driven per-room
+ordering established in §5). We note this as an
 interpretation consistent with the data rather than a directly measured property; we did not
 attempt to separate route memorisation from observation-driven navigation, and doing so would
 require held-out layouts of the kind §8 specifies.
