@@ -31,19 +31,26 @@ CSV_DIR = Path(os.environ.get("ARCH_ABLATIONS_CSV_DIR", "results/csv"))
 FIG_DIR = Path(os.environ.get("ARCH_ABLATIONS_FIG_DIR", "figures"))
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 CEILING = 27.8            # A-STRICT/control reward ceiling (reference line)
-REPS = 20000
+# Paper-standard bootstrap settings, matching Analysis/rliable_analysis.py: 50k reps and a
+# FIXED seed, so every CI drawn here regenerates to the digit from the committed CSVs.
+REPS = int(os.environ.get("ARCH_ABLATIONS_REPS", "50000"))
+BOOTSTRAP_SEED = int(os.environ.get("ARCH_ABLATIONS_BOOTSTRAP_SEED", "20260817"))
 
-# (config_id, label, classification) — display order = ceilings then the fracture;
-# flicker07 is optional (appears once its claim-grade CSV lands).
+# (config_id, label, behavioural regime) — display order = ceilings, then the p=0.8 cell
+# at both budgets. flicker07 is optional (appears once its claim-grade CSV lands).
+# p=0.8 appears TWICE, at 200k and at matched 500k: the pair is the §5 finding, so the
+# ladder figure has to show both or it contradicts Table 2.
 CELLS = [
-    ("p2_strict_sym",   "A-STRICT (13-D)",       "ceiling"),
-    ("p2_alias_sym",    "Aliasing (10-D)",       "ceiling"),
-    ("p2_proxnoise_sym","Prox-noise q=0.3 (13-D)", "ceiling"),
-    ("p2_flicker07_sym","Flicker p=0.7 (52-D)",  "ceiling"),   # optional
-    ("p2_flicker08_sym","Flicker p=0.8 (52-D)",  "fracture"),
+    ("p2_strict_sym",        "A-STRICT (13-D)",            "ceiling"),
+    ("p2_alias_sym",         "Aliasing (10-D)",            "ceiling"),
+    ("p2_proxnoise_sym",     "Prox-noise q=0.3 (13-D)",    "ceiling"),
+    ("p2_flicker07_sym",     "Flicker p=0.7 (52-D, 500k)", "ceiling"),   # optional
+    ("p2_flicker08_sym",     "Flicker p=0.8 (52-D, 200k)", "fracture"),
+    ("p2_flicker08_500k_sym","Flicker p=0.8 (52-D, 500k)", "fragmentation"),
 ]
-COLOR = {"ceiling": sns.color_palette("tab10")[0],      # blue
-         "fracture": sns.color_palette("tab10")[3]}     # red
+COLOR = {"ceiling": sns.color_palette("tab10")[0],          # blue
+         "fracture": sns.color_palette("tab10")[3],         # red
+         "fragmentation": sns.color_palette("tab10")[1]}    # orange
 
 
 def load(cid: str):
@@ -59,6 +66,7 @@ def load(cid: str):
 def iqm_ci(vals):
     sd = {"x": np.asarray(vals, float).reshape(-1, 1)}
     fn = lambda x: np.array([metrics.aggregate_iqm(x)])
+    np.random.seed(BOOTSTRAP_SEED)      # reproducible CI bounds (see BOOTSTRAP_SEED)
     p, c = rly.get_interval_estimates(sd, fn, reps=REPS)
     return float(p["x"][0]), float(c["x"][0, 0]), float(c["x"][1, 0])
 
@@ -84,12 +92,12 @@ ax.text(CEILING, len(present) - 0.4, f"ceiling {CEILING}", rotation=90,
 ax.set_yticks(yticks); ax.set_yticklabels(ylabels)
 ax.invert_yaxis(); ax.margins(y=0.12)
 ax.set_xlabel("IQM eval return  (95% stratified-bootstrap CI, 10 seeds)")
-ax.set_title("Phase 2 — observability-ladder cells (symmetric PPO): ceilings vs the p=0.8 fracture")
+ax.set_title("Phase 2 — observability-ladder cells (symmetric PPO):\n"
+             "ceilings vs the p=0.8 fracture (200k) and its matched-budget fragmentation (500k)")
 from matplotlib.lines import Line2D
-ax.legend(handles=[Line2D([0], [0], marker="o", color="w", markerfacecolor=COLOR["ceiling"],
-                          markersize=9, label="ceiling"),
-                   Line2D([0], [0], marker="o", color="w", markerfacecolor=COLOR["fracture"],
-                          markersize=9, label="fracture")],
+ax.legend(handles=[Line2D([0], [0], marker="o", color="w", markerfacecolor=COLOR[k],
+                          markersize=9, label=k)
+                   for k in ("ceiling", "fracture", "fragmentation")],
           loc="lower right", frameon=True)
 fig.tight_layout()
 f1 = FIG_DIR / "p2_ladder_iqm.png"
@@ -134,7 +142,9 @@ else:
                      color="black")
     axR.set_title("Per-room success — kitchen abandoned 10/10, bedroom solved 10/10")
     fig.colorbar(im, ax=axR, fraction=0.046, pad=0.04, label="per-room success rate")
-    fig.suptitle("Flicker p=0.8 fracture is systematic across all 10 seeds", y=1.02)
+    fig.suptitle("Flicker p=0.8 at the 200k base budget: the fracture is systematic "
+                 "across all 10 seeds\n(at matched 500k budget this resolves into six "
+                 "distinct per-seed regimes — see Appendix A)", y=1.04)
     fig.tight_layout()
     f2 = FIG_DIR / "p2_flicker08_perseed.png"
     fig.savefig(f2, dpi=300, bbox_inches="tight")

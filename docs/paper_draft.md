@@ -36,8 +36,8 @@ A pre-registered observability ladder
 — four degradation mechanisms, extended by dated amendment as each proved insufficient —
 then shows *why* the asymmetry question cannot be settled here: no manipulation places the task in the regime the
 hypothesis needs. Every rung either **ceilings** (the optimal policy stays easy to
-represent) or **fractures** into a give-up local optimum (hard, but not in the way the
-hypothesis specifies). We report this as a worked *negative outcome of the protocol*, not
+represent), **fractures** into a give-up local optimum, or **fragments** across
+seed-selected local optima (hard, but not in the way the hypothesis specifies). We report this as a worked *negative outcome of the protocol*, not
 as evidence against asymmetry: this task class cannot arbitrate the hypothesis, which may
 still hold on a task meeting the specification we derive. The contribution is the reusable
 check — and the finding that a common style of benchmark silently fails it.
@@ -94,7 +94,8 @@ Pre-registration and the cheap-gate/expensive-seed split are integral to it, not
 **Second, a worked negative outcome**: applied to the navigation task, the protocol shows
 the reported asymmetry advantage does not survive multiple seeds (§4) and that *no*
 pre-registered degradation of the task (§5) induces the regime the hypothesis needs — the
-task stays reactively, redundantly, memorably easy, or fractures the wrong way (§7).
+task stays reactively, redundantly, memorably easy, or breaks the wrong way — fracturing,
+or fragmenting across seed-selected local optima (§7).
 Throughout we are careful that this is a statement about *the task*, not the hypothesis: we
 show this task class cannot test inverted asymmetry, and specify (§8) what a task that could
 would need — not that asymmetry fails in reinforcement learning.
@@ -184,7 +185,14 @@ concrete symptom of the gap §5 then diagnoses.
 16-dimensional observation, reward `R(L)=30−0.2L` for an `L`-step success). We train
 the two architectures — symmetric and inverted — with otherwise identical PPO
 hyperparameters (verbatim from those earlier experiments' configurations) for a fixed 200k-step
-budget, at **10 seeds each**, and aggregate with rliable. [P1-MS]
+budget, at **10 seeds each**, and aggregate with rliable. [P1-MS] Two aggregation
+conventions hold throughout the paper. A configuration's return is the IQM across seeds
+of each seed's mean eval return, with a 95% stratified-bootstrap CI. **Per-room
+success-rate aggregates are computed as the mean across seeds of each seed's own SR
+fraction** — a seed-mean, not a pooled per-episode rate; because eval target rooms are
+sampled rather than balanced, seeds carry unequal per-room episode counts, and the
+seed-mean keeps every aggregate arithmetically consistent with the per-seed tables
+(averaging a per-seed column reproduces its aggregate).
 
 **The nine configurations, and why DQN is among them.** The two architectures above are
 the endpoints of a four-point PPO sweep over the actor:critic capacity ratio at fixed
@@ -339,22 +347,31 @@ difficulty at `p=0.5/0.7/0.8`; the observed ordering does not follow `H` — dif
 geometry-, not distance-, driven. (`figures/p2_rung3_observed_vs_predicted.png`)
 
 **Claim-grade results.** [P2-MS] For a *standard* (symmetric) PPO agent — Exp 1
-hyperparameters verbatim, 10 seeds, rliable IQM + 95% CI — every cell either ceilings
-or fractures; none is hard-but-learnable (Table 2; Figure 6):
+hyperparameters verbatim, 10 seeds, rliable IQM + 95% CI — every cell either ceilings,
+fractures, or fragments across seed-selected local optima; none is hard-but-learnable
+(Table 2; Figure 6):
 
-**Table 2.** Phase 2 claim-grade ladder cells — symmetric PPO, 10 seeds, rliable IQM + 95% CI.
+**Table 2.** Phase 2 claim-grade ladder cells — symmetric PPO, **10 seeds per cell**,
+rliable IQM + 95% CI; per-room SR is the seed-mean defined in §4. All rows are
+claim-grade [P2-MS]; the single-seed learnability gates that preceded them are
+calibration [GATE] and appear nowhere in this table. "Patterns" counts the distinct
+per-seed (kitchen, bedroom, bathroom) SR combinations observed across the ten seeds — 1
+means every seed landed in the same behavioural regime, and a large count means the
+seeds scattered.
 
-| Cell | obs | steps | IQM eval return (95% CI) | per-room SR (k/bed/bath) | outcome |
-|---|---|---|---|---|---|
-| A-STRICT | 13-D | 200k | 27.24 [27.21, 27.27] | 1.00/1.00/1.00 | ceiling |
-| Aliasing | 10-D | 200k | 27.17 [27.04, 27.37] | 1.00/1.00/1.00 | ceiling |
-| Prox-noise q=0.3 | 13-D | 200k | 26.78 [26.41, 26.93] | 1.00/1.00/1.00 | ceiling |
-| Flicker p=0.7 | 52-D | 500k | 26.14 [25.42, 26.32] | 1.00/1.00/1.00 | ceiling (slow) |
-| Flicker p=0.8 | 52-D | 200k | 8.95 [6.29, 13.01] | 0.00/1.00/0.33 | **fracture** |
+| Cell | obs | steps | IQM eval return (95% CI) | per-room SR (k/bed/bath) | patterns | behavioural regime |
+|---|---|---|---|---|---|---|
+| A-STRICT | 13-D | 200k | 27.24 [27.21, 27.27] | 1.00/1.00/1.00 | 1/10 | ceiling |
+| Aliasing | 10-D | 200k | 27.17 [27.04, 27.37] | 1.00/1.00/1.00 | 1/10 | ceiling |
+| Prox-noise q=0.3 | 13-D | 200k | 26.78 [26.41, 26.93] | 1.00/1.00/1.00 | 1/10 | ceiling |
+| Flicker p=0.7 | 52-D | 500k | 26.14 [25.41, 26.32] | 1.00/1.00/1.00 | 2/10 | ceiling (slow) |
+| Flicker p=0.8 | 52-D | 200k | 8.95 [6.43, 13.01] | 0.00/1.00/0.33 | 3/10 | **fracture** |
+| Flicker p=0.8 | 52-D | 500k | 13.24 [7.79, 18.91] | 0.50/0.75/0.83 | 6/10 | **fragmentation** |
 
-**Figure 6.** The ladder cells of Table 2 plotted: per-cell IQM eval return + 95% CI — four
-ceilings clustered near the 27.8 optimal-path ceiling vs the p=0.8 fracture isolated at 8.95.
-(`figures/p2_ladder_iqm.png`)
+**Figure 6.** The ladder cells of Table 2 plotted at their original budgets: per-cell IQM
+eval return + 95% CI — four ceilings clustered near the 27.8 optimal-path ceiling vs the
+`p=0.8` fracture isolated at 8.95 (200k). The matched-budget 500k `p=0.8` cell is reported
+in Table 2 and Appendix A. (`figures/p2_ladder_iqm.png`)
 
 Three observations are decisive. **First, the ceilings are real ceilings, not slow
 learners or wall-avoidance floors:** the four ceiling cells reach 100% success on all
@@ -366,19 +383,36 @@ below the 27.8 optimal-path ceiling (R(11)=27.8 is the optimal return for the tw
 rooms, which the trimmed IQM tracks; the full-16-D symmetric configuration itself sits
 just under it at IQM 27.66) being a path-length tax from occasional blackouts, not
 sub-ceiling difficulty. **Second, the
-one cell that leaves the ceiling does not become hard-but-learnable — it fractures:**
-at `p=0.8`, IQM collapses to 8.95 and the failure is a *systematic give-up*, robust
-across all 10 seeds — **kitchen is abandoned in 10/10 seeds and bedroom solved in
-10/10** (Figure 7), with failures being timeouts, not collisions.
-(This cell was run at the 200k base budget, not the 500k the `p=0.7` cell required; we
-flag the asymmetry rather than hide it. The collapse is a fracture, not under-training:
-the per-room outcome is bimodal and *settled* — bedroom solved and kitchen abandoned in
-10/10 seeds, an equidistant pair — the signature of a converged degenerate policy, not of
-uniform sub-ceiling progress that more steps would lift. A matched-budget 500k
-replication is the definitive check, and is the one confirmation run this paper leaves
-open.)
-That is a degenerate local optimum, not the graceful partial competence a fair
-architecture test needs. **Third, this exhausts the axis:** across removal, flicker,
+one cell that leaves the ceiling does not become hard-but-learnable — it fragments, and
+the two budgets together are the finding:** at the 200k base budget, `p=0.8` looked like
+a clean systematic fracture: IQM collapsed to 8.95 [6.43, 13.01], **kitchen was abandoned
+in 10/10 seeds and bedroom solved in 10/10** (Figure 7), failures were timeouts rather
+than collisions, and only three distinct per-room outcome patterns appeared across the ten
+seeds. To remove the budget-parity asymmetry with the `p=0.7` cell, we re-ran `p=0.8` at
+10 seeds × 500k. [P2-MS] The aggregate barely moves — IQM 13.24 [7.79, 18.91], an interval
+overlapping the 200k result substantially, so mean return is not statistically
+distinguishable between the two budgets — but the *distribution* changes completely: six
+distinct kitchen/bedroom/bathroom patterns now appear across ten seeds, up from three. The
+kitchen, abandoned by every seed at 200k, is solved by five of ten at 500k; conversely two
+seeds (2 and 6) now abandon the *bedroom*, the one room every seed solved at 200k. Only
+two seeds (4 and 9) solve all three rooms, at per-seed IQM 25.56 and 25.13; the other
+eight specialise on different room subsets (per-seed detail in Appendix A).
+
+We report both budgets in Table 2 rather than replacing the 200k result, because their
+combination is what carries the argument. The 200k data alone would have supported the
+description "systematic near/far give-up" — a description the 500k data does not survive.
+What the two together support is a stronger claim: `p=0.8` flicker places the task in a
+regime of **landscape fragmentation**, in which multiple locally-optimal *reactive*
+policies partition the reachable outcome space by room, and seed selection determines
+which one a given run finds. The 200k pattern was one manifestation of that landscape —
+the one visible while training is short enough that most seeds have not left their initial
+basin. This is a stronger negative signal for the paper's central concern than the
+original fracture story, not a weaker one: under a manipulation that looked like clean
+structure at one budget, matched-budget multi-seed evaluation exposed seed-driven
+behavioural diversity that a single budget — let alone a single run — would have missed.
+Either way the rung is disqualified for the architecture comparison, and for the same
+reason: a gap measured on it would reflect which architecture more often lands in which
+basin, not whether `A` suits `S`. **Third, this exhausts the axis:** across removal, flicker,
 aliasing, and sensor noise — the pre-registered set of single-map observation
 degradations (the pre-registration caps the ladder at these four mechanisms on the fixed
 20×20 map; any further degradation is deemed a different task under a separate Phase-3
@@ -386,14 +420,15 @@ pre-registration) — no rung meets the precondition. On this task, the H1 asymm
 hypothesis is **untestable**: the null of §4 is a fact about the task, not (on this
 evidence) about the hypothesis. Note what this means for the pre-registered primary
 endpoint. That endpoint — the inverted−symmetric IQM gap — is defined only on a rung that
-passes the step-5 `S`-attribution guard, and no rung did: every cell either ceilinged or
-fractured. The gap was therefore never computed on a qualifying cell, and Table 2 is
+passes the step-5 `S`-attribution guard, and no rung did: every cell either ceilinged,
+fractured, or fragmented. The gap was therefore never computed on a qualifying cell, and Table 2 is
 symmetric-only for exactly that reason. The non-computation *is* the result — there was no
 cell on which measuring the architecture gap would have meant anything.
 
-**Figure 7.** The p=0.8 fracture, per seed — left: outcome split (success / timeout /
-collision), showing failures are timeouts not collisions; right: per-room success-rate
-heatmap across the 10 seeds, kitchen abandoned 10/10 and bedroom solved 10/10.
+**Figure 7.** The p=0.8 fracture **at the 200k budget**, per seed — left: outcome split
+(success / timeout / collision), showing failures are timeouts not collisions; right:
+per-room success-rate heatmap across the 10 seeds, kitchen abandoned 10/10 and bedroom
+solved 10/10. The corresponding 500k per-seed outcomes are in Appendix A.
 (`figures/p2_flicker08_perseed.png`)
 
 ---
@@ -449,10 +484,11 @@ worked example that instantiates it.
 >    mechanism that explains why the manipulation never induced `S`.
 >
 >    *(Our own p=0.8 flicker rung is the cautionary example: it is hard-but-not-ceiling,
->    yet it became hard the wrong way — a systematic give-up local optimum, not a
->    hard-to-represent policy — so an architecture comparison there would have measured
->    local-optimum escape, not `S`. It is disqualified by this guard, not by its
->    difficulty.)*
+>    yet it became hard the wrong way — a systematic give-up local optimum at the base
+>    budget, and at matched budget a fragmented landscape of seed-selected reactive
+>    optima, rather than a hard-to-represent policy — so an architecture comparison there
+>    would have measured which basin a run happens to land in, not `S`. It is disqualified
+>    by this guard, not by its difficulty.)*
 
 Two design choices in this procedure are themselves part of the methodological
 contribution, not incidental lab habit. **Pre-registration** of the ladder, the
@@ -594,21 +630,23 @@ frame only when four consecutive maskings occur, an event of probability `p^k` �
 does not need to integrate across gaps; it needs only *some* frame to be recent. Flickering
 therefore attacks the *availability* of the observation, not the *complexity* of the function
 mapping observations to actions — and availability is not the quantity the policy-hard
-hypothesis concerns. The distinction becomes sharpest at `p=0.8` (41% fully-masked). Rather
-than the policy becoming gracefully harder to represent, the agent abandons the task: returns
-fall to IQM 8.95 [6.29, 13.01], failures are timeouts (a per-seed timeout fraction of 0.13–0.47 of episodes) rather than collisions
-(≈0), and the kitchen target is abandoned in 10 of 10 seeds while the bedroom is solved in 10
-of 10. That is an optimisation pathology — a give-up local optimum — not a representational
-demand, and it is precisely the case the S-attribution guard (§6, step 5) exists to disqualify.
+hypothesis concerns. The distinction becomes sharpest at `p=0.8` (41% fully-masked), where the agent's
+behaviour no longer cleanly converges. At 200k, returns fall to IQM 8.95 [6.43, 13.01] with a
+single dominant failure mode — kitchen abandonment across every seed, failures dominated by
+timeouts (a per-seed timeout fraction of 0.13–0.47 of episodes) rather than collisions (≈0).
+At matched budget (500k, §5), the aggregate return is not meaningfully higher (IQM 13.24
+[7.79, 18.91]) but the per-seed structure fragments into six distinct room-specialisation
+patterns across ten seeds, with two seeds finding a near-ceiling policy. Neither budget shows
+the graceful degradation of a policy becoming harder to represent; both show an optimisation
+landscape with multiple reactive local optima whose selection is seed-driven. This is what
+the S-attribution guard (§6, step 5) exists to disqualify: hardness arising from landscape
+structure over reactive policies, not from any policy being genuinely hard to represent.
 
 **A single memorisable layout.** The map is fixed across all episodes, with optimal path
 lengths of 11, 11, and 22 steps to the three targets (§5). A policy can therefore encode
 routes specific to this layout rather than computing them from the observation, which would
-explain both the robustness to proximity corruption (a route-following policy needs little
-reliable wall-sensing) and the geometry-structured shape of the `p=0.8` collapse (which rooms survive tracks
-their approach geometry, not their distance — the two *equidistant* near rooms diverge,
-bedroom solved and kitchen abandoned, consistent with the geometry-driven per-room
-ordering established in §5). We note this as an
+explain the robustness to proximity corruption (a route-following policy needs little
+reliable wall-sensing). We note this as an
 interpretation consistent with the data rather than a directly measured property; we did not
 attempt to separate route memorisation from observation-driven navigation, and doing so would
 require held-out layouts of the kind §8 specifies.
@@ -624,7 +662,8 @@ this task none of these made the underlying decision function *more complex* —
 is set by the task's short-horizon, static, reactively-solvable structure, not by how the
 observation is delivered. Hence the pattern across §5: manipulations either
 leave the simple policy intact and reachable (ceiling), or starve the agent badly enough that
-it stops attempting the task (fracture). There is no intermediate regime in which the policy
+it stops attempting the task (fracture) or scatters across seed-selected reactive optima
+(fragmentation). There is no intermediate regime in which the policy
 becomes hard but learnable, because there is no hard policy to find.
 
 ## 8. What a task would need to test this hypothesis
@@ -693,3 +732,36 @@ an RL task** — one of the kind §8 specifies, where the asymmetry precondition
 a learnable regime and the architecture comparison can actually run. Constructing that task
 and testing inverted asymmetry where it *can* be tested is the natural next step; the
 specification in §8 is written to make it buildable.
+
+---
+
+## Appendix A. Per-seed outcomes, `p=0.8` flicker at matched budget (500k)
+
+The fragmentation reported in §5 is a statement about the *distribution* across seeds, so
+we give the per-seed data it rests on. [P2-MS] Ten seeds, symmetric PPO, 500k steps.
+Per-room SR is each seed's own success fraction on episodes targeting that room; the
+aggregate row is the seed-mean of each column, per the §4 definition. Six distinct
+(kitchen, bedroom, bathroom) combinations occur across the ten seeds.
+
+| Seed | kitchen SR | bedroom SR | bathroom SR | eval return IQM | regime |
+|---|---|---|---|---|---|
+| 0 | 0.00 | 1.00 | 0.33 | 15.70 | bedroom + partial bathroom |
+| 1 | 0.00 | 1.00 | 0.67 | 17.96 | bedroom + partial bathroom |
+| 2 | 1.00 | 0.00 | 1.00 | 0.22 | kitchen + bathroom, bedroom abandoned |
+| 3 | 0.00 | 1.00 | 1.00 | 20.64 | bedroom + bathroom, kitchen abandoned |
+| 4 | 1.00 | 1.00 | 1.00 | 25.56 | **all three rooms** |
+| 5 | 0.00 | 1.00 | 1.00 | 21.73 | bedroom + bathroom, kitchen abandoned |
+| 6 | 1.00 | 0.00 | 1.00 | 0.24 | kitchen + bathroom, bedroom abandoned |
+| 7 | 1.00 | 0.50 | 0.67 | 18.51 | kitchen + partial bedroom/bathroom |
+| 8 | 0.00 | 1.00 | 0.67 | 17.76 | bedroom + partial bathroom |
+| 9 | 1.00 | 1.00 | 1.00 | 25.13 | **all three rooms** |
+| **aggregate (seed-mean)** | **0.50** | **0.75** | **0.83** | **13.24** [7.79, 18.91] | fragmentation |
+
+Two features are worth noting against the 200k result of Table 2. First, the kitchen —
+abandoned by every seed at 200k — is solved by five of ten seeds here, while the bedroom,
+solved by every seed at 200k, is abandoned outright by seeds 2 and 6; no room is
+categorically out of reach, and no room is reliably reached. Second, seeds 2 and 6 carry
+very low returns (IQM 0.22 and 0.24) despite solving two of three rooms, because the
+sampled eval draw gave them a majority of episodes on the room they abandoned — an
+illustration of why per-room SR and aggregate return are reported separately rather than
+one being inferred from the other.

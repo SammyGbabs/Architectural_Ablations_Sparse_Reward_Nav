@@ -63,6 +63,18 @@ PHASE = "p1"
 # drop to e.g. 2_000 for a fast pass while iterating.
 REPS = int(os.environ.get("ARCH_ABLATIONS_REPS", "50000"))
 
+# rliable's stratified bootstrap draws from the global NumPy RNG, so an unseeded run
+# returns CI bounds that wobble in the last decimal or two between invocations. Every CI
+# in the paper is regenerated from committed CSVs, so those bounds must be reproducible to
+# the digit: seed immediately before each bootstrap call (see _seed_bootstrap). Changing
+# this value changes every published CI — treat it as frozen.
+BOOTSTRAP_SEED = int(os.environ.get("ARCH_ABLATIONS_BOOTSTRAP_SEED", "20260817"))
+
+
+def _seed_bootstrap() -> None:
+    """Reset the global NumPy RNG so the next rliable bootstrap is reproducible."""
+    np.random.seed(BOOTSTRAP_SEED)
+
 # Set ARCH_ABLATIONS_WRITE_FIGS=0 for a numbers-only pass that does NOT save (and so
 # never overwrites) the committed PNGs — e.g. a Phase-2-focused run that must leave
 # Figure 3 untouched. Default writes the figures as before.
@@ -197,6 +209,7 @@ def iqm_interval_estimates(sdict: dict[str, np.ndarray], reps: int = REPS):
     Returns (points, cis) where points[label] -> shape (1,) and
     cis[label] -> shape (2, 1) (low/high)."""
     iqm_fn = lambda x: np.array([metrics.aggregate_iqm(x)])
+    _seed_bootstrap()
     return rly.get_interval_estimates(sdict, iqm_fn, reps=reps)
 
 
@@ -236,6 +249,7 @@ def probability_of_improvement(better: str, worse: str, reps: int = REPS):
     """P(score(better) > score(worse)) with 95% CI (rliable, stratified boot)."""
     pairs = {f"{LABELS[better]},{LABELS[worse]}":
              (scores_of(better), scores_of(worse))}
+    _seed_bootstrap()
     probs, prob_cis = rly.get_interval_estimates(
         pairs, metrics.probability_of_improvement, reps=reps)
     key = list(pairs)[0]
@@ -554,6 +568,7 @@ if "ppo_exp1" in FRAMES and "ppo_exp4" in FRAMES:
     lo = float(np.floor(all_scores.min())) - 1.0
     hi = float(np.ceil(all_scores.max())) + 1.0
     taus = np.linspace(lo, hi, 100)
+    _seed_bootstrap()
     profiles, profile_cis = rly.create_performance_profile(h1_dict, taus, reps=REPS)
 
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -656,6 +671,11 @@ P2_FRACTURE_CELLS = {
 }
 ROOM_SR_COLS = ("sr_kitchen", "sr_bedroom", "sr_bathroom")
 
+# Per-room SR values are snapped to this many decimals before pattern bucketing, so two
+# float spellings of the same fraction (0.666666 vs 0.666667) cannot register as two
+# distinct behavioural patterns.
+SR_SNAP_DP = 3
+
 
 def analyse_p2_cell(stem: str, label: str, reps: int = REPS) -> None:
     """For one Phase-2 cell: 10-seed IQM + 95% bootstrap CI of return, aggregate
@@ -677,11 +697,18 @@ def analyse_p2_cell(stem: str, label: str, reps: int = REPS) -> None:
     _log(f"  {label}  (n={n} seeds)")
     _log(f"    IQM return (over per-seed mean) : {iqm:6.2f}   95% CI [{lo:6.2f}, {hi:6.2f}]")
 
-    # (2) aggregate per-room success rate (mean across seeds).
+    # (2) aggregate per-room SR. DEFINITION (stated in the paper's §4 setup): the mean
+    # ACROSS SEEDS of each seed's own per-room SR fraction — deliberately NOT a pooled
+    # per-episode rate. Eval target rooms are sampled rather than balanced, so seeds have
+    # unequal per-room episode counts (e.g. the 500k cell's seed 2: kitchen 3/3,
+    # bedroom 0/8, bathroom 4/4, hence success_rate 0.467 rather than 0.667). Seed-mean
+    # keeps this aggregate arithmetically consistent with the per-seed table printed
+    # below — averaging that column reproduces this row — and is robust to that
+    # truncation; pooling would silently reweight seeds by their episode counts.
     agg = {c: float(np.nanmean(np.asarray(cols[c], float))) for c in ROOM_SR_COLS}
-    _log(f"    aggregate per-room SR           : "
-         f"kitchen {agg['sr_kitchen']:.2f} / bedroom {agg['sr_bedroom']:.2f} / "
-         f"bathroom {agg['sr_bathroom']:.2f}")
+    _log(f"    aggregate per-room SR (seed-mean): "
+         f"kitchen {agg['sr_kitchen']:.3f} / bedroom {agg['sr_bedroom']:.3f} / "
+         f"bathroom {agg['sr_bathroom']:.3f}")
 
     # (3) per-seed table — the heterogeneity is the finding.
     srk = np.asarray(cols["sr_kitchen"], float)
@@ -700,7 +727,7 @@ def analyse_p2_cell(stem: str, label: str, reps: int = REPS) -> None:
     # heterogeneity: how many DISTINCT per-room (k, bed, bath) outcome patterns?
     patterns: dict[tuple, int] = {}
     for i in range(n):
-        key = (round(float(srk[i]), 2), round(float(srb[i]), 2), round(float(srh[i]), 2))
+        key = tuple(round(float(v[i]), SR_SNAP_DP) for v in (srk, srb, srh))
         patterns[key] = patterns.get(key, 0) + 1
     dom = max(patterns.values())
     _log(f"    distinct per-room SR patterns    : {len(patterns)} across {n} seeds "
