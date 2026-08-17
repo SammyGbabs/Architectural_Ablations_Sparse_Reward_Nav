@@ -63,6 +63,11 @@ PHASE = "p1"
 # drop to e.g. 2_000 for a fast pass while iterating.
 REPS = int(os.environ.get("ARCH_ABLATIONS_REPS", "50000"))
 
+# Set ARCH_ABLATIONS_WRITE_FIGS=0 for a numbers-only pass that does NOT save (and so
+# never overwrites) the committed PNGs — e.g. a Phase-2-focused run that must leave
+# Figure 3 untouched. Default writes the figures as before.
+WRITE_FIGS = os.environ.get("ARCH_ABLATIONS_WRITE_FIGS", "1") != "0"
+
 # Per-seed scalar used as a run's "score" for cross-seed IQM. Eval is
 # deterministic within a seed (fixed spawn; only the target room varies), so
 # the per-seed mean and per-seed IQM are near-identical; mean is the run score.
@@ -113,12 +118,11 @@ def _log(line: str = "") -> None:
 # ---------------------------------------------------------------------------
 # Data loading: one CSV per config -> per-seed arrays
 # ---------------------------------------------------------------------------
-def load_config_frame(config_id: str) -> dict[str, np.ndarray] | None:
-    """Read p1_{config_id}.csv (one row per seed) into a {column: np.ndarray}
-    dict, sorted by seed. Numeric columns are float arrays (blank -> NaN);
-    non-numeric columns stay object arrays. None if the file is absent/empty.
-    stdlib csv only — no pandas dependency."""
-    path = DATA_DIR / f"{PHASE}_{config_id}.csv"
+def _read_seed_csv(path: Path) -> dict[str, np.ndarray] | None:
+    """Read a per-seed CSV (one row per seed) into a {column: np.ndarray} dict,
+    sorted by seed. Numeric columns -> float arrays (blank -> NaN); non-numeric
+    columns stay object arrays. None if the file is absent/empty. stdlib csv only
+    — no pandas dependency."""
     if not path.is_file():
         print(f"[warn] missing CSV (skipping): {path}")
         return None
@@ -136,6 +140,19 @@ def load_config_frame(config_id: str) -> dict[str, np.ndarray] | None:
         except ValueError:
             cols[key] = np.array(raw, dtype=object)          # e.g. wandb_run_name
     return cols
+
+
+def load_config_frame(config_id: str) -> dict[str, np.ndarray] | None:
+    """Phase-1 loader: read {PHASE}_{config_id}.csv (the PHASE prefix is added here)."""
+    return _read_seed_csv(DATA_DIR / f"{PHASE}_{config_id}.csv")
+
+
+def load_named_frame(stem: str) -> dict[str, np.ndarray] | None:
+    """Load DATA_DIR/{stem}.csv where the stem ALREADY carries its phase prefix
+    (e.g. 'p2_flicker08_500k_sym'). Phase-2 config_ids begin with 'p2_' and their
+    CSV is written as {config_id}.csv, so they load by stem rather than by adding
+    a prefix."""
+    return _read_seed_csv(DATA_DIR / f"{stem}.csv")
 
 
 def n_seeds(config_id: str) -> int:
@@ -520,8 +537,11 @@ ax.legend(handles=[
     loc="lower right", frameon=True)
 fig.tight_layout()
 fig1_path = FIG_DIR / "p1_iqm_main_configs.png"
-fig.savefig(fig1_path, dpi=300, bbox_inches="tight")
-print(f"[fig] wrote {fig1_path}")
+if WRITE_FIGS:
+    fig.savefig(fig1_path, dpi=300, bbox_inches="tight")
+    print(f"[fig] wrote {fig1_path}")
+else:
+    print(f"[fig] SKIP write (ARCH_ABLATIONS_WRITE_FIGS=0): {fig1_path}")
 plt.show()
 
 # %%
@@ -550,8 +570,11 @@ if "ppo_exp1" in FRAMES and "ppo_exp4" in FRAMES:
     ax.set_title("H1 performance profile — PPO inverted vs symmetric")
     fig.tight_layout()
     fig2_path = FIG_DIR / "p1_perf_profile_ppo_inverted_vs_symmetric.png"
-    fig.savefig(fig2_path, dpi=300, bbox_inches="tight")
-    print(f"[fig] wrote {fig2_path}")
+    if WRITE_FIGS:
+        fig.savefig(fig2_path, dpi=300, bbox_inches="tight")
+        print(f"[fig] wrote {fig2_path}")
+    else:
+        print(f"[fig] SKIP write (ARCH_ABLATIONS_WRITE_FIGS=0): {fig2_path}")
     plt.show()
 
 # %%
@@ -605,9 +628,87 @@ ax.legend(handles=[Line2D([0], [0], marker="o", color="w",
           loc="lower right" if False else "upper right")
 fig.tight_layout()
 fig3_path = FIG_DIR / "p1_sample_efficiency_ppo_vs_dqn.png"
-fig.savefig(fig3_path, dpi=300, bbox_inches="tight")
-print(f"[fig] wrote {fig3_path}")
+if WRITE_FIGS:
+    fig.savefig(fig3_path, dpi=300, bbox_inches="tight")
+    print(f"[fig] wrote {fig3_path}")
+else:
+    print(f"[fig] SKIP write (ARCH_ABLATIONS_WRITE_FIGS=0): {fig3_path}")
 plt.show()
+
+# %%
+# ---------------------------------------------------------------------------
+# G. Phase 2 — flicker p=0.8 fracture cell(s): IQM+CI, aggregate per-room SR,
+#    and the PER-SEED table. At 500k the 200k "10/10 kitchen-abandonment" pattern
+#    breaks up: seeds scatter into different local optima, so the per-seed
+#    heterogeneity — reported alongside the aggregate — IS the finding. Uses its
+#    own loader (Phase-2 CSVs carry the p2_ prefix in the filename) and is
+#    independent of the Phase-1 FRAMES dict above.
+# ---------------------------------------------------------------------------
+_log("")
+_log("=" * 74)
+_log("G. PHASE 2 - flicker p=0.8 fracture cell(s) (per-seed heterogeneity)")
+_log("=" * 74)
+
+# stem (== config_id, already p2-prefixed) -> human label.
+P2_FRACTURE_CELLS = {
+    "p2_flicker08_sym":      "flicker p=0.8 (200k)",
+    "p2_flicker08_500k_sym": "flicker p=0.8 (500k)",
+}
+ROOM_SR_COLS = ("sr_kitchen", "sr_bedroom", "sr_bathroom")
+
+
+def analyse_p2_cell(stem: str, label: str, reps: int = REPS) -> None:
+    """For one Phase-2 cell: 10-seed IQM + 95% bootstrap CI of return, aggregate
+    per-room SR, and the full per-seed table (seed, eval_return_iqm, per-room SR,
+    plus success/collision for reading which local optimum each seed fell into)."""
+    cols = load_named_frame(stem)
+    if cols is None or not cols["seed"].size:
+        _log(f"  [skip] no CSV for {label}  ({DATA_DIR / (stem + '.csv')})")
+        return
+    seeds = cols["seed"].astype(int)
+    n = int(seeds.size)
+    order = np.argsort(seeds)
+
+    # (1) 10-seed IQM + 95% stratified-bootstrap CI of per-seed return.
+    score = np.asarray(cols[SCORE_COL], float).reshape(-1, 1)
+    pts, cis = iqm_interval_estimates({label: score}, reps)
+    iqm = float(pts[label][0]); lo = float(cis[label][0, 0]); hi = float(cis[label][1, 0])
+    _log("")
+    _log(f"  {label}  (n={n} seeds)")
+    _log(f"    IQM return (over per-seed mean) : {iqm:6.2f}   95% CI [{lo:6.2f}, {hi:6.2f}]")
+
+    # (2) aggregate per-room success rate (mean across seeds).
+    agg = {c: float(np.nanmean(np.asarray(cols[c], float))) for c in ROOM_SR_COLS}
+    _log(f"    aggregate per-room SR           : "
+         f"kitchen {agg['sr_kitchen']:.2f} / bedroom {agg['sr_bedroom']:.2f} / "
+         f"bathroom {agg['sr_bathroom']:.2f}")
+
+    # (3) per-seed table — the heterogeneity is the finding.
+    srk = np.asarray(cols["sr_kitchen"], float)
+    srb = np.asarray(cols["sr_bedroom"], float)
+    srh = np.asarray(cols["sr_bathroom"], float)
+    ret_iqm = np.asarray(cols["eval_return_iqm"], float)
+    succ = np.asarray(cols["success_rate"], float)
+    coll = np.asarray(cols["collision_rate"], float)
+    _log("    per-seed table:")
+    _log(f"      {'seed':>4s} {'ret_iqm':>8s} {'sr_k':>5s} {'sr_bed':>6s} "
+         f"{'sr_bath':>7s} {'succ':>5s} {'coll':>5s}")
+    for i in order:
+        _log(f"      {seeds[i]:4d} {ret_iqm[i]:8.2f} {srk[i]:5.2f} {srb[i]:6.2f} "
+             f"{srh[i]:7.2f} {succ[i]:5.2f} {coll[i]:5.2f}")
+
+    # heterogeneity: how many DISTINCT per-room (k, bed, bath) outcome patterns?
+    patterns: dict[tuple, int] = {}
+    for i in range(n):
+        key = (round(float(srk[i]), 2), round(float(srb[i]), 2), round(float(srh[i]), 2))
+        patterns[key] = patterns.get(key, 0) + 1
+    dom = max(patterns.values())
+    _log(f"    distinct per-room SR patterns    : {len(patterns)} across {n} seeds "
+         f"(largest shared by {dom}); 1 => homogeneous fracture, many => scattered optima.")
+
+
+for _p2_stem, _p2_label in P2_FRACTURE_CELLS.items():
+    analyse_p2_cell(_p2_stem, _p2_label)
 
 # %%
 # ---------------------------------------------------------------------------
@@ -619,7 +720,8 @@ print("# PHASE 1 - CONSOLIDATED SUMMARY (A-F)")
 print("#" * 74)
 for line in SUMMARY:
     print(line)
-print("\nFigures written:")
+print("\nFigures written:" if WRITE_FIGS
+      else "\nFigures NOT written (ARCH_ABLATIONS_WRITE_FIGS=0, numbers-only pass):")
 for p in ("p1_iqm_main_configs.png",
           "p1_perf_profile_ppo_inverted_vs_symmetric.png",
           "p1_sample_efficiency_ppo_vs_dqn.png"):
