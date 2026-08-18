@@ -412,7 +412,12 @@ structure at one budget, matched-budget multi-seed evaluation exposed seed-drive
 behavioural diversity that a single budget — let alone a single run — would have missed.
 Either way the rung is disqualified for the architecture comparison, and for the same
 reason: a gap measured on it would reflect which architecture more often lands in which
-basin, not whether `A` suits `S`. **Third, this exhausts the axis:** across removal, flicker,
+basin, not whether `A` suits `S`. Read down the ladder, this is a graded trend rather than
+an isolated result: the number of distinct per-seed behavioural patterns rises
+monotonically with degradation severity — 1/10 at each of the three ceiling rungs, 2/10 at
+`p=0.7`, 3/10 at `p=0.8` on the base budget, 6/10 at `p=0.8` on matched budget (Table 2) —
+so the fragmentation of the hardest rung is the endpoint of a trend the whole ladder
+exhibits, not a property peculiar to one cell. **Third, this exhausts the axis:** across removal, flicker,
 aliasing, and sensor noise — the pre-registered set of single-map observation
 degradations (the pre-registration caps the ladder at these four mechanisms on the fixed
 20×20 map; any further degradation is deemed a different task under a separate Phase-3
