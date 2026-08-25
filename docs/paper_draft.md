@@ -372,7 +372,7 @@ seeds scattered.
 | A-STRICT | 13-D | 200k | 27.24 [27.21, 27.27] | 1.00/1.00/1.00 | 1/10 | ceiling |
 | Aliasing | 10-D | 200k | 27.17 [27.04, 27.37] | 1.00/1.00/1.00 | 1/10 | ceiling |
 | Prox-noise q=0.3 | 13-D | 200k | 26.78 [26.41, 26.93] | 1.00/1.00/1.00 | 1/10 | ceiling |
-| Flicker p=0.7 | 52-D | 500k | 26.14 [25.41, 26.32] | 1.00/1.00/1.00 | 2/10 | ceiling (slow) |
+| Flicker p=0.7 | 52-D | 500k | 26.14 [25.41, 26.32] | 1.00/1.00/0.93 | 2/10 | ceiling (slow) |
 | Flicker p=0.8 | 52-D | 200k | 8.95 [6.43, 13.01] | 0.00/1.00/0.33 | 3/10 | **fracture** |
 | Flicker p=0.8 | 52-D | 500k | 13.24 [7.79, 18.91] | 0.50/0.75/0.83 | 6/10 | **fragmentation** |
 
@@ -382,8 +382,8 @@ and its matched-budget fragmentation at 13.24 (500k), whose interval overlaps th
 fracture's. Per-seed detail for the 500k cell is in Appendix A. (`figures/p2_ladder_iqm.png`)
 
 Three observations are decisive. **First, the ceilings are real ceilings, not slow
-learners or wall-avoidance floors.** The four ceiling cells reach 100% success on all
-three rooms with tight CIs, prox-noise does so at a collision rate of 0.00 (the noise
+learners or wall-avoidance floors.** The three 200k ceiling cells reach 100% success on
+all three rooms with tight CIs, prox-noise doing so at a collision rate of 0.00 (the noise
 is absorbed, not lethal), and even the hardest *learnable* flicker (`p=0.7`) reaches
 the ceiling given budget: 9/10 seeds at full success, the tenth (seed 9) plateauing
 partway with bathroom SR 0.33, which the IQM trims but which exists. The ~1.6 gap

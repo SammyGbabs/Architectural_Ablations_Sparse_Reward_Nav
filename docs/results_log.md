@@ -306,6 +306,37 @@ Convergence curve (IQM | success | k/bed/bath | **coll** @ 100k/200k/300k/400k/5
 
 ---
 
+### [P2][correction] Flicker p=0.7 per-room SR was mis-stated as 1.00/1.00/1.00
+
+*Correction to the `[P2][CLAIM-GRADE] Symmetric multi-seed ladder cells` entry above,
+whose p=0.7 row reads `1.00 / 1.00 / 1.00`. That entry is left as written, per the log's
+append-don't-edit convention.*
+
+- **Date:** 2026-08-25
+- **Owner:** Anonymous Author(s)
+- **Raw per-seed CSV:** `results/csv/p2_flicker07_sym.csv`
+
+**What was wrong.** Under the seed-mean definition now fixed paper-wide (mean across seeds
+of each seed's own per-room SR fraction), the p=0.7 cell's bathroom SR is **0.93**, not
+1.00: seeds 0–8 reach bathroom SR 1.00, seed 9 reaches 0.33, so the seed-mean is
+9.33/10 = 0.9333. Kitchen and bedroom are 1.00 across all ten seeds and are unaffected.
+
+**How it was caught.** Re-running the seeded aggregation over every committed Table 2 cell
+reproduced five of six rows exactly and disagreed on this one. The error was independently
+detectable from inside the paper: the same row's `patterns` column reads 2/10, which is
+only possible if the seeds are *not* all identical, and the §5 prose already stated "9/10
+seeds at full success, the tenth (seed 9) plateauing partway with bathroom SR 0.33."
+
+**Fix applied.** Paper Table 2 and the LaTeX port now read `1.00/1.00/0.93`. The §5
+sentence "the four ceiling cells reach 100% success on all three rooms" was narrowed to
+"the three 200k ceiling cells", since p=0.7 is the fourth and does not reach 100% on
+bathroom. No other number changes: the IQM, CI, pattern count, and behavioural-regime
+classification for this cell are unaffected, and the "ceiling (slow)" reading stands (the
+cell reaches the ceiling given budget; one seed plateaus, which the trimmed IQM discounts
+and which the prose already disclosed).
+
+---
+
 ## Phase 3 — Cross-environment (MiniGrid), Lipschitz, dynamic, sensor noise
 
 **Purpose:** Test H4 (Lipschitz) by post-hoc analysis of saved checkpoints. Test H5 (cross-env) on MiniGrid FourRooms, MultiRoom-N2-S4, DoorKey-6x6. Address Reviewer 2/3 concerns about static-only env via dynamic-obstacle ablation, and the sim-to-real gap via sensor-noise ablation.
