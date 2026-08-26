@@ -176,24 +176,34 @@ with probability $q=0.3$).
 95\% CI. Per-room SR is the mean across seeds of each seed's own success fraction.
 ``Pat.'' counts distinct per-seed (kitchen, bedroom, bathroom) SR combinations across the ten
 seeds: 1 means every seed reached the same behavioural regime, a large count means the seeds
-scattered. Proximity noise uses $q=0.3$. Single-seed learnability gates are calibration and appear nowhere here.}
+scattered. Single-seed learnability gates are calibration and appear nowhere here.}
 \label{tab:ladder}
 \centering
 \small
-\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llllll}
 \toprule
-Cell & obs / steps & IQM return (95\% CI) & per-room SR & pat. & regime \\
+Cell & obs / steps & IQM eval return (95\% CI) & per-room SR & pat. & regime \\
 \midrule
 A-STRICT & 13-D / 200k & 27.24 [27.21, 27.27] & 1.00/1.00/1.00 & 1/10 & ceiling \\
 Aliasing & 10-D / 200k & 27.17 [27.04, 27.37] & 1.00/1.00/1.00 & 1/10 & ceiling \\
-Prox-noise & 13-D / 200k & 26.78 [26.41, 26.93] & 1.00/1.00/1.00 & 1/10 & ceiling \\
+Prox-noise $q{=}0.3$ & 13-D / 200k & 26.78 [26.41, 26.93] & 1.00/1.00/1.00 & 1/10 & ceiling \\
 Flicker $p{=}0.7$ & 52-D / 500k & 26.14 [25.41, 26.32] & 1.00/1.00/0.93 & 2/10 & ceiling (slow) \\
 Flicker $p{=}0.8$ & 52-D / 200k & \phantom{0}8.95 [\phantom{0}6.43, 13.01] & 0.00/1.00/0.33 & 3/10 & \textbf{fracture} \\
 Flicker $p{=}0.8$ & 52-D / 500k & 13.24 [\phantom{0}7.79, 18.91] & 0.50/0.75/0.83 & 6/10 & \textbf{fragmentation} \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.70\linewidth]{p2_ladder_iqm.png}
+\caption{Table~\ref{tab:ladder} plotted: per-cell IQM eval return $+$ 95\% CI. Four ceilings
+cluster near the 27.8 optimal-path reference; the $p=0.8$ fracture sits at 8.95 (200k) and its
+matched-budget fragmentation at 13.24 (500k), whose interval overlaps the fracture's. The
+overlap is the point: the two budgets are indistinguishable in mean return, and differ only in
+per-seed distribution.}
+\label{fig:ladder}
+\end{figure}
 
 Table~\ref{tab:ladder} reports every claim-grade cell. Three readings are decisive.
 \textbf{First, the ceilings are real ceilings}, not slow learners or wall-avoidance floors:
@@ -242,7 +252,7 @@ terms.
 \fbox{\parbox{0.955\linewidth}{
 \textbf{Can this task test this architecture hypothesis?} \emph{Given ``property $A$ helps
 because it suits problem structure $S$'':}
-\begin{enumerate}
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}\setlength{\topsep}{2pt}
 \item \textbf{State the precondition.} Write down $S$ explicitly, and the observable signature
   of $S$ present versus absent. If you cannot name $S$, you cannot test the claim.
 \item \textbf{Design a manipulation ladder.} Build graded task variants that monotonically

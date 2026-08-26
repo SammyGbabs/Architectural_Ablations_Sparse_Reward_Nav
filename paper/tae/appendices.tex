@@ -151,6 +151,17 @@ exists, and which is why that cell's per-room bathroom SR is 0.93 rather than 1.
 
 \begin{figure}[h]
 \centering
+\includegraphics[width=0.70\linewidth]{p2_ladder_iqm.png}
+\caption{The ladder cells of Table~\ref{tab:ladder} plotted: per-cell IQM eval return $+$ 95\%
+CI. Four ceilings cluster near the 27.8 optimal-path reference; the $p=0.8$ fracture sits at
+8.95 (200k) and its matched-budget fragmentation at 13.24 (500k), whose interval overlaps the
+fracture's. The overlap is the point: the two budgets are indistinguishable in mean return and
+differ only in per-seed distribution.}
+\label{fig:ladder}
+\end{figure}
+
+\begin{figure}[h]
+\centering
 \includegraphics[width=0.92\linewidth]{p2_flicker08_perseed.png}
 \caption{The $p=0.8$ fracture at the 200k budget, per seed. Left: outcome split (success /
 timeout / collision), showing failures are timeouts, not collisions. Right: per-room
