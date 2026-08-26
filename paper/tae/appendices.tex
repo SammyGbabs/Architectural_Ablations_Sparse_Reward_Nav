@@ -1,0 +1,359 @@
+%%%% Appendices A-F for the TAE compressed version.
+%%%% Governing principle: everything cut from the body lives here in full. A reviewer
+%%%% reading only the body should be convinced; a reviewer reading the appendices should
+%%%% find every body claim substantiated with complete evidence.
+
+\section{Phase 1 in full}
+\label{app:phase1}
+
+\paragraph{Aggregation conventions.} A configuration's return is the IQM across seeds of each
+seed's mean eval return, with a 95\% stratified-bootstrap CI. The bootstrap is seeded, so
+every interval reported in this paper regenerates exactly from the released per-seed data.
+Per-room success-rate aggregates are the mean across seeds of each seed's own SR fraction, a
+seed-mean rather than a pooled per-episode rate: because eval target rooms are sampled rather
+than balanced, seeds carry unequal per-room episode counts, and the seed-mean keeps every
+aggregate arithmetically consistent with the per-seed tables (averaging a per-seed column
+reproduces its aggregate).
+
+\paragraph{Evidence tiers.} We distinguish three grades of evidence and never let them mix.
+Multi-seed Phase 1 and multi-seed Phase 2 results are claim-grade: ten seeds, IQM with 95\%
+stratified-bootstrap CIs, and released per-seed data. Single-seed gates are design and
+calibration steps only, deciding which rungs are worth spending seeds on, and are never cited
+as results or entered into any table.
+
+\paragraph{The nine configurations, and why DQN is among them.} The two architectures compared
+in the body are endpoints of a four-point PPO sweep over the actor:critic capacity ratio at
+fixed budget. The other five configurations are DQN and carry no asymmetry signal at all. They
+are present because Phase 1 holds \emph{two} claims from the earlier work to account, and the
+second is a PPO-vs-DQN sample-efficiency comparison, so the five DQN runs are the value-based
+comparator family for that claim, not part of the asymmetry test. The PPO configurations vary
+essentially only the actor:critic ratio; the DQN configurations (a single Q-network, no
+actor--critic split) vary width, discount, exploration schedule, and buffer, and include two
+deliberately destabilised settings retained to replicate the original DQN table faithfully.
+All nine share the frozen environment, the 200k-step budget, and 10 seeds.
+
+\begin{table}[h]
+\caption{The nine Phase-1 configurations. PPO spans the actor:critic ratio; DQN is the
+value-based comparator family for the sample-efficiency claim.}
+\label{tab:configs}
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+Family & Config & Network (actor $\pi$ / critic $v$; DQN: Q-net) & Ratio / role \\
+\midrule
+PPO & Exp 1 & $\pi$ [256,256] / $v$ [256,256] & symmetric 1:1, the control \\
+ & Exp 2 & $\pi$ [256,256] / $v$ [512,256] & conventional (wider critic) \\
+ & Exp 3 & $\pi$ [128,128] / $v$ [512,512,256] & conventional (deep critic) \\
+ & Exp 4 & $\pi$ [512,256,128] / $v$ [256,128] & \textbf{inverted} (deeper actor) \\
+\midrule
+DQN & Exp 1 & Q [256,256] & slow $\epsilon$-decay \\
+ & Exp 2 & Q [512,256], $\gamma=0.995$ & discount variant \\
+ & Exp 3 & Q [512,256] & aggressive $\epsilon$-decay, high lr \\
+ & Exp 4 & Q [1024,512] & low lr, high $\gamma$ (unstable) \\
+ & Exp 5 & Q [512,256], $\gamma=0.99$ & original best DQN \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Why the episodes-to-convergence ratio was the wrong measurement.} The earlier work
+reported PPO as ${\approx}12.5\times$ more sample-efficient than DQN, on the basis that PPO
+reached stable high performance in roughly 20 episodes against nearly 250 for DQN, i.e.\
+$12.5\times = 250/20$, a ratio of episodes-to-visual-convergence read off single-run learning
+curves. This is not a sound cross-algorithm measure, for three reasons. \textbf{(a) Episodes
+are not a common currency of experience.} Episode length on this task varies five- to
+ten-fold with policy quality: a wandering early-training agent runs to the 150-step timeout
+while a converged agent finishes in ${\sim}14$ steps, so one episode purchases very different
+amounts of environment interaction at different points in training. For two algorithms whose
+episode-length trajectories differ, an episode-count ratio conflates sample efficiency with
+episode duration. The currency the agent actually spends, and that both algorithms share, is
+environment steps. \textbf{(b) ``Stable high performance'' is eyeballed}, with no defined
+threshold and, read off a single curve, no uncertainty. \textbf{(c) It is a single run.} Our
+own H1 data shows how misleading single runs are here: one inverted-configuration seed
+(Exp~4, seed~8) collapses to a return of 3.6, a collision local optimum in which terminating
+the episode early is easier to find than reaching a distant goal, while its nine siblings sit
+at ${\sim}27.6$ and the symmetric configuration has no collapsed seed at all. That asymmetric
+collapse is the only asymmetry-shaped signal anywhere in the H1 data.
+
+\paragraph{Re-measured, step-based, multi-seed.} Using environment steps to reach 90\% of the
+asymptotic eval-return IQM, over 10 seeds, no advantage remains. To keep the comparison from
+turning on a chosen exemplar we report the full within-family distribution rather than a
+single pair. The four PPO configurations reach threshold at IQMs of 36.7k (Exp 1), 36.7k
+(Exp 2), 163.3k (Exp 3), and 32.0k (Exp 4) steps; the five DQN configurations at 21.7k, 20.0k,
+20.0k, 45.0k, and 26.7k, with overlapping confidence intervals throughout (e.g.\ PPO Exp 1
+[26.7k, 40.0k], DQN Exp 2 [14.0k, 74.0k]). The two families occupy the same
+${\approx}20$--$45$k band, and the single configuration that leaves it, PPO Exp 3 at 163.3k
+steps, is the \emph{slowest} of either family. On an exemplar-independent reading PPO is no
+faster than DQN, and the one salient difference runs opposite to the claimed $12.5\times$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.66\linewidth]{p1_iqm_main_configs.png}
+\caption{Per-configuration IQM eval return with 95\% stratified-bootstrap CIs across the nine
+main configurations, 10 seeds each.}
+\label{fig:p1iqm}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\linewidth]{p1_perf_profile_ppo_inverted_vs_symmetric.png}
+\caption{Performance profile: fraction of runs exceeding a return threshold, inverted (Exp 4)
+versus symmetric (Exp 1). The two curves overlap across the range.}
+\label{fig:p1prof}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.66\linewidth]{p1_sample_efficiency_ppo_vs_dqn.png}
+\caption{Sample efficiency: environment steps to 90\% of asymptotic IQM (IQM $+$ 95\% CI),
+PPO versus DQN. The two families' distributions overlap; the one outlier is a \emph{slow} PPO
+configuration.}
+\label{fig:p1sampeff}
+\end{figure}
+
+\clearpage
+\section{Phase 2 in full}
+\label{app:phase2}
+
+\paragraph{Why flicker rate is not the difficulty knob (calibration).} A ground-truth BFS on
+the map gives optimal path lengths $H = \{\text{kitchen }11, \text{bedroom }11,
+\text{bathroom }22\}$, and an exact consecutive-mask survival model predicts blackout
+probability rising with $H$. The observed per-room difficulty contradicts this: under flicker
+the two equidistant rooms diverge sharply (at $p=0.8$ the kitchen is abandoned while the
+bedroom is solved), so difficulty is geometry- and approach-dependent, not distance-dependent,
+and no single flicker rate places all rooms in a partial band. This directed the aliasing rung
+and is reported as calibration, not as a result.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.52\linewidth]{p2_rung3_blackout_vs_p.png}
+\caption{$P(\text{disabling blackout} \geq 1$ per episode$)$ versus flicker probability $p$ at
+$k=4$, one curve per room using its real BFS path length $H$, with the hard-but-learnable band
+shaded.}
+\label{fig:blackout}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.52\linewidth]{p2_rung3_observed_vs_predicted.png}
+\caption{Model-predicted (distance-$H$-based) per-room difficulty versus observed per-room
+difficulty at $p=0.5/0.7/0.8$. The observed ordering does not follow $H$: difficulty is
+geometry-, not distance-, driven.}
+\label{fig:obspred}
+\end{figure}
+
+\paragraph{The ceiling reference.} $R(11)=27.8$ is the optimal return for the two near rooms,
+which the trimmed IQM tracks; the full 16-D symmetric configuration itself sits just under it
+at IQM 27.66. The ${\sim}1.6$ gap below that reference at $p=0.7$ is a path-length tax from
+occasional blackouts, not sub-ceiling difficulty. At $p=0.7$, 9/10 seeds reach full success;
+the tenth (seed 9) plateaus partway with bathroom SR 0.33, which the IQM trims but which
+exists, and which is why that cell's per-room bathroom SR is 0.93 rather than 1.00.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.92\linewidth]{p2_flicker08_perseed.png}
+\caption{The $p=0.8$ fracture at the 200k budget, per seed. Left: outcome split (success /
+timeout / collision), showing failures are timeouts, not collisions. Right: per-room
+success-rate heatmap across the 10 seeds, kitchen abandoned 10/10 and bedroom solved 10/10.}
+\label{fig:fracture}
+\end{figure}
+
+\paragraph{Per-seed outcomes at matched budget.} The fragmentation reported in the body is a
+statement about the \emph{distribution} across seeds, so Table~\ref{tab:perseed} gives the
+per-seed data it rests on. Two features stand out against the 200k result. First, the kitchen,
+abandoned by every seed at 200k, is solved by five of ten seeds here, while the bedroom,
+solved by every seed at 200k, is abandoned outright by seeds 2 and 6: no room is categorically
+out of reach, and no room is reliably reached. Second, seeds 2 and 6 carry very low returns
+(IQM 0.22 and 0.24) despite solving two of three rooms, because the sampled eval draw gave
+them a majority of episodes on the room they abandoned. This illustrates why per-room SR and
+aggregate return are reported separately rather than one being inferred from the other.
+
+\begin{table}[h]
+\caption{Per-seed outcomes for the $p=0.8$ flicker cell at the matched 500k budget.}
+\label{tab:perseed}
+\centering
+\small
+\begin{tabular}{llllll}
+\toprule
+Seed & kitchen SR & bedroom SR & bathroom SR & eval return IQM & regime \\
+\midrule
+0 & 0.00 & 1.00 & 0.33 & 15.70 & bedroom $+$ partial bathroom \\
+1 & 0.00 & 1.00 & 0.67 & 17.96 & bedroom $+$ partial bathroom \\
+2 & 1.00 & 0.00 & 1.00 & \phantom{0}0.22 & kitchen $+$ bathroom, bedroom abandoned \\
+3 & 0.00 & 1.00 & 1.00 & 20.64 & bedroom $+$ bathroom, kitchen abandoned \\
+4 & 1.00 & 1.00 & 1.00 & 25.56 & \textbf{all three rooms} \\
+5 & 0.00 & 1.00 & 1.00 & 21.73 & bedroom $+$ bathroom, kitchen abandoned \\
+6 & 1.00 & 0.00 & 1.00 & \phantom{0}0.24 & kitchen $+$ bathroom, bedroom abandoned \\
+7 & 1.00 & 0.50 & 0.67 & 18.51 & kitchen $+$ partial bedroom/bathroom \\
+8 & 0.00 & 1.00 & 0.67 & 17.76 & bedroom $+$ partial bathroom \\
+9 & 1.00 & 1.00 & 1.00 & 25.13 & \textbf{all three rooms} \\
+\midrule
+\textbf{seed-mean} & \textbf{0.50} & \textbf{0.75} & \textbf{0.83} & \textbf{13.24} & fragmentation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Positive control in full}
+\label{app:poscontrol}
+
+The ladder applies a single fixed permutation of the MNIST pixels to a fraction
+$q \in \{0, 0.25, 0.5, 0.75, 1.0\}$ of positions: nested subsets, a derangement within each,
+identity elsewhere. Every rung is a bijection on pixel positions, so information is provably
+preserved and the classes remain perfectly separable; what is progressively destroyed as
+$q \to 1$ is only spatial locality. The CNN and the MLP are parameter-matched at 105.9k
+parameters each, run at 10 seeds and a fixed sub-asymptotic budget where the convolutional
+advantage is widest.
+
+\begin{table}[h]
+\caption{Positive-control dose-response: CNN versus parameter-matched MLP test accuracy
+(IQM $+$ 95\% CI, 10 seeds) at each scramble fraction $q$.}
+\label{tab:pc}
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+$q$ & CNN test acc.\ (IQM, 95\% CI) & MLP test acc.\ (IQM, 95\% CI) & gap \\
+\midrule
+0.00 & 97.98 [97.81, 98.14] & 95.83 [95.72, 95.89] & \textbf{$+2.15$} \\
+0.25 & 97.31 [97.12, 97.45] & 95.66 [95.54, 95.82] & $+1.65$ \\
+0.50 & 96.27 [96.13, 96.47] & 95.69 [95.57, 95.86] & $+0.59$ \\
+0.75 & 93.59 [93.25, 93.89] & 95.77 [95.68, 95.85] & $-2.18$ \\
+1.00 & 93.18 [92.93, 93.45] & 95.70 [95.60, 95.82] & $-2.52$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\linewidth]{pc_dose_response.png}
+\caption{The dose-response of Table~\ref{tab:pc} plotted: CNN and MLP test accuracy versus
+scramble fraction $q$, with 95\% CI bands. The CNN starts high, declines monotonically, and
+crosses the flat MLP near $q\approx0.55$.}
+\label{fig:pc}
+\end{figure}
+
+\paragraph{The frozen predictions.} \textbf{P1}, the CNN degrades monotonically as
+$q \to 1$; \textbf{P2}, the MLP's achievable accuracy is identical, since the learning problem
+is unchanged up to a relabeling of input units and the MLP hypothesis class is closed under
+that relabeling; \textbf{P3}, the gap is large at $q=0$ and closes to ${\approx}0$ at $q=1$;
+\textbf{P4}, the protocol therefore reports the task \emph{can} test $A$-suits-$S$ at $q=0$
+and \emph{cannot} at $q=1$. P1 held (CNN IQM $97.98 \to 93.18$, monotone). P4 held. P3 was
+partially wrong, in the informative direction reported in the body.
+
+\paragraph{Why the MLP curve licenses the attribution.} Because each rung is a bijection, the
+MLP's 0.13-point drift from $q=0$ to $q=1$ is optimisation noise, not information loss: the
+task did not get harder, only locality was removed, so the CNN's fall can only be the loss of
+the structure convolution exploits. Flatness is judged by a pre-committed absolute threshold,
+$|\Delta| < 1.0$ point, which holds comfortably at 0.13. The corroborating check asks whether
+the $q=1$ MLP IQM (95.70) lies inside the $q=0$ MLP's 95\% CI of [95.72, 95.89]; it misses at
+the lower bound by 0.02 points. This is an artifact of precision, not a real shift: with 10
+seeds that interval is only ${\pm}0.1$ point wide, so a change far smaller than any practical
+significance still falls outside it. We pre-committed the absolute threshold precisely because
+CI-overlap is not a sound flatness criterion at that resolution, which is pre-registration
+working as intended. This is the step-5 attribution guard \emph{succeeding}, the complement of
+the navigation $p=0.8$ rung where the same guard \emph{disqualified} a cell that had become
+hard the wrong way.
+
+\clearpage
+\section{Why the task resists every manipulation}
+\label{app:mechanism}
+
+Three properties of the environment, each visible in the results, together explain why no
+observation manipulation induced a hard-to-represent policy.
+
+\paragraph{Observation redundancy.} The 16-D observation carries several channels that each
+independently suffice for competent navigation, so removing any one leaves the others to carry
+the load. The cumulative case is clearest: six of the sixteen dimensions can be removed,
+global position (dims 9--10), distance-to-target (dim 11), and the region one-hot (dims
+13--15), and the task is still solved completely, with all three rooms reached in 100\% of
+episodes (IQM 27.17 [27.04, 27.37] at 10-D, against 27.66 [27.56, 27.78] for the full 16-D
+observation). The half-point difference is statistically resolvable but is a path-length tax
+rather than a loss of capability: the agent still reaches every target, taking marginally
+longer. Nor is any single channel necessary in isolation. Removing global position alone
+leaves a ceiling; additionally removing distance-to-target leaves a ceiling (27.24 [27.21,
+27.27]); additionally removing the region one-hot leaves a ceiling at no detectable cost in
+sample efficiency either (36.7k versus 40.0k environment steps to 90\% of asymptote, a
+difference within seed noise). The proximity sensors appear to be the operative channel, since
+they alone distinguish room, hallway, and doorway cells, which is what the region one-hot
+nominally encoded. Yet even proximity's reliability is dispensable: corrupting it with 30\%
+per-bit noise still ceilings (26.78 [26.41, 26.93]) at a collision rate of 0.00. The
+observation is over-determined for this task.
+
+\paragraph{Reactive optimality.} The optimal policy appears to be well approximated by a
+function of the \emph{current} observation rather than of the observation history. This is why
+frame-stacking neutralises flickering so effectively: with a stack of four frames, the agent
+is deprived of every recent frame only when four consecutive maskings occur, an event of
+probability $p^k$, which is 6.25\% at $p=0.5$ and 24\% at $p=0.7$. Because a single recent
+frame suffices to act well, the agent need not integrate across gaps; it needs only
+\emph{some} frame to be recent. Flickering therefore attacks the \emph{availability} of the
+observation, not the \emph{complexity} of the function mapping observations to actions, and
+availability is not the quantity the policy-hard hypothesis concerns. The distinction is
+sharpest at $p=0.8$ (41\% fully masked), where behaviour no longer cleanly converges. At 200k,
+returns fall to IQM 8.95 [6.43, 13.01] with a single dominant failure mode, kitchen
+abandonment across every seed, failures dominated by timeouts (a per-seed timeout fraction of
+0.13--0.47 of episodes) rather than collisions (${\approx}0$). At matched budget the aggregate
+is not meaningfully higher (13.24 [7.79, 18.91]) but the per-seed structure fragments into six
+distinct room-specialisation patterns, with two seeds finding a near-ceiling policy. Neither
+budget shows the graceful degradation of a policy becoming harder to represent; both show an
+optimisation landscape with multiple reactive local optima whose selection is seed-driven.
+That is what the step-5 attribution guard exists to disqualify: hardness arising from
+landscape structure over reactive policies, not from any policy being genuinely hard to
+represent.
+
+\paragraph{A single memorisable layout.} The map is fixed across all episodes, with optimal
+path lengths of 11, 11, and 22 steps to the three targets. A policy can therefore encode
+routes specific to this layout rather than computing them from the observation, which would
+explain the robustness to proximity corruption, since a route-following policy needs little
+reliable wall-sensing. We note this as an interpretation consistent with the data rather than
+a directly measured property; we did not attempt to separate route memorisation from
+observation-driven navigation, and doing so would require held-out layouts of the kind the
+body's task specification calls for.
+
+\paragraph{Why this closes off the observation axis.} The three properties compound. The
+precondition the hypothesis requires, a policy hard to represent while the value function
+remains smooth, is a property of the task's \emph{decision structure}, not of its observation
+vector. This task's decision structure is short-horizon, static, and reactively solvable: the
+optimal action is a simple function of local information, and it remains so however that
+information is delivered. Degrading the observation can make the information scarcer
+(flickering), narrower (removal), or noisier (corruption), but on this task none of these made
+the underlying decision function more complex. Its complexity is set by the task's
+short-horizon, static, reactively-solvable structure, not by how the observation is delivered.
+Hence the pattern across the ladder: manipulations either leave the simple policy intact and
+reachable (ceiling), or starve the agent enough that it stops attempting the task (fracture)
+or scatters across seed-selected reactive optima (fragmentation). There is no intermediate
+regime in which the policy becomes hard but learnable, because there is no hard policy to
+find.
+
+\clearpage
+\section{Reproducibility}
+\label{app:repro}
+
+Every quantitative claim in this paper is backed by committed per-seed data and regenerable
+analysis. Every aggregate reported, including every confidence interval, regenerates from the
+released per-seed CSVs under a seeded bootstrap: the resampling seed is fixed in the analysis
+scripts, so intervals reproduce to the digit rather than wobbling between runs. We verified
+this by re-deriving every claim-grade number in the paper from the released CSVs, covering all
+six ladder cells, the Phase 1 aggregates and probability of improvement, steps-to-90\% for all
+nine configurations, the redundancy and timeout figures, every per-seed row, and all ten
+positive-control cells.
+
+The supplementary material contains: (i) the per-seed raw CSVs behind every IQM and confidence
+interval; (ii) the analysis and plotting scripts that turn those CSVs into every figure and
+table, using rliable for IQM aggregation with stratified-bootstrap confidence intervals;
+(iii) the frozen pre-registration documents for both the observability ladder and the positive
+control, including the dated amendment trail; (iv) the environment and observation-wrapper
+code implementing the frozen navigation task and the four degradation mechanisms; and (v) a
+running results log recording each experiment's headline numbers and interpretation in the
+order they were obtained.
+
+The pre-registration documents fix, before any run, the hypotheses, the ladder, the
+falsification criteria, and the per-outcome interpretation table on which the methodological
+claim of this paper rests. They are included so that the ordering of design decisions relative
+to results can be independently checked.
+
+\clearpage
+\section{NeurIPS paper checklist}
+\label{app:checklist}
+
+\input{checklist}

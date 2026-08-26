@@ -45,3 +45,15 @@ paper/*.synctex.gz
 paper/*.fdb_latexmk
 paper/*.fls
 paper/*.toc
+
+# LaTeX build (paper/tae/) — TAE workshop version; track source, ignore output
+paper/tae/*.pdf
+paper/tae/*.aux
+paper/tae/*.log
+paper/tae/*.out
+paper/tae/*.bbl
+paper/tae/*.blg
+paper/tae/*.synctex.gz
+paper/tae/*.fdb_latexmk
+paper/tae/*.fls
+paper/tae/*.bak
