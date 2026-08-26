@@ -58,3 +58,16 @@ paper/tae/*.fdb_latexmk
 paper/tae/*.fls
 paper/tae/*.bak
 paper/tae/*.prev
+
+# LaTeX build (paper/newinml/) — NewInML workshop version; track source, ignore output
+paper/newinml/*.pdf
+paper/newinml/*.aux
+paper/newinml/*.log
+paper/newinml/*.out
+paper/newinml/*.bbl
+paper/newinml/*.blg
+paper/newinml/*.synctex.gz
+paper/newinml/*.fdb_latexmk
+paper/newinml/*.fls
+paper/newinml/*.bak
+paper/newinml/*.prev
