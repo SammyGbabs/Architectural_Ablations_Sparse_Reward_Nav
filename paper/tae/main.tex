@@ -160,10 +160,24 @@ run, and a dated amendment trail records every subsequent decision. The independ
 is a ladder of observation wrappers over the frozen environment, monotone in policy-relevant
 information removed; the primary endpoint is the inverted$-$symmetric IQM gap. Because a
 floor effect would masquerade as the target regime, each rung is first single-seed-gated for
-learnability before any load-bearing cell is promoted to 10 seeds. Guided by the
-POMDP-difficulty literature, in which static feature removal is often insufficient and
-temporal hidden state is what makes policies hard \citep{hausknecht2015drqn,morad2023popgym},
-we test four mechanisms: \textbf{pure removal} (drop global position, then
+learnability before any load-bearing cell is promoted to 10 seeds. The ladder tests four
+degradation mechanisms: pure feature removal (dropping global position and
+distance-to-target), flicker combined with frame-stacking, targeted aliasing (dropping the
+region one-hot), and proximity noise.
+
+The ladder was pre-registered before any run and extended by four dated amendments as each
+rung proved insufficient. The initial pure-removal rungs ceilinged, so flicker with
+frame-stacking was added; that in turn either ceilinged ($p=0.7$) or fractured ($p=0.8$), so
+targeted aliasing was added, following an analysis of what our own data showed about the
+task's difficulty structure; proximity noise was added as the final mechanism. Each amendment
+was committed before its runs, and the interpretation of each possible outcome was fixed in
+advance. The pre-registration document and its full amendment trail are included in the
+supplementary material (Appendix~\ref{app:repro}).
+
+Guided by the POMDP-difficulty literature, in which static feature removal is often
+insufficient and temporal hidden state is what makes policies hard
+\citep{hausknecht2015drqn,morad2023popgym}, the mechanisms are, in detail:
+\textbf{pure removal} (drop global position, then
 distance-to-target); \textbf{flicker $+$ frame-stack}, masking each frame with probability $p$
 and stacking the last $k=4$ \citep{mnih2015human}, so any hardness remains representable by a
 feedforward policy rather than requiring recurrence \citep{kapturowski2019r2d2};
@@ -199,17 +213,23 @@ Table~\ref{tab:ladder} reports every claim-grade cell. Three readings are decisi
 \textbf{First, the ceilings are real ceilings}, not slow learners or wall-avoidance floors:
 the 200k ceiling cells reach 100\% success on all three rooms with tight CIs, proximity noise
 does so at a collision rate of $0.00$, and even the hardest \emph{learnable} flicker
-($p=0.7$) reaches the ceiling given budget, with 9/10 seeds at full success.
+($p=0.7$) reaches the ceiling given budget, with 9/10 seeds at full success (the tenth
+plateaus partway, which is why that cell's bathroom SR reads 0.93; Appendix~\ref{app:phase2}
+gives the per-cell detail and the optimal-path ceiling reference).
 
 \textbf{Second, the one cell that leaves the ceiling does not become hard-but-learnable; it
 fragments, and the two budgets together are the finding.} At 200k, $p=0.8$ looked like a clean
 systematic fracture: IQM collapsed to $8.95$, the kitchen was abandoned in 10/10 seeds and the
 bedroom solved in 10/10, failures were timeouts rather than collisions, and only three
-distinct per-room outcome patterns appeared. Re-run at matched budget ($10$ seeds $\times$
-500k, for parity with the $p=0.7$ cell), the aggregate barely moves, $13.24$ against $8.95$
+distinct per-room outcome patterns appeared, suggesting a single give-up local optimum shared
+across runs. That cell, however, ran at 200k, while the $p=0.7$ cell had required 500k.
+
+To eliminate this budget asymmetry, we re-ran the $p=0.8$ cell at $10$ seeds $\times$ 500k,
+matching the $p=0.7$ budget. The aggregate barely moves, $13.24$ against $8.95$
 with substantially overlapping intervals, so mean return is not statistically distinguishable
 between budgets. The \emph{distribution}, however, changes completely: six distinct per-room
-patterns now appear. The kitchen, abandoned by every seed at 200k, is solved by five of ten;
+patterns now appear (Table~\ref{tab:perseed}). The kitchen, abandoned by every seed at 200k,
+is solved by five of ten;
 conversely two seeds abandon the \emph{bedroom}, the one room every seed solved at 200k. Only
 two of ten seeds solve all three rooms. The 200k reading, ``systematic near/far give-up'',
 does not survive the matched budget. What both budgets together support is stronger: $p=0.8$
@@ -221,15 +241,52 @@ $1/1/1/2/3/6$ across the six cells. Either way the rung is disqualified for an a
 comparison, and for the same reason: a gap measured on it would reflect which architecture
 more often lands in which basin, not whether $A$ suits $S$.
 
+\begin{table}[t]
+\caption{Per-seed outcomes at $p=0.8$ flicker, 500k budget: six distinct
+kitchen/bedroom/bathroom SR patterns across ten seeds. Seeds 4 and 9 approach ceiling; seeds
+2 and 6 abandon the bedroom in favour of the kitchen, the opposite of the 200k pattern; the
+remaining six seeds each solve some strict subset of the three rooms.}
+\label{tab:perseed}
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lccccccccccc}
+\toprule
+Seed & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 \\
+\midrule
+kitchen SR  & 0.00 & 0.00 & 1.00 & 0.00 & 1.00 & 0.00 & 1.00 & 1.00 & 0.00 & 1.00 \\
+bedroom SR  & 1.00 & 1.00 & 0.00 & 1.00 & 1.00 & 1.00 & 0.00 & 0.50 & 1.00 & 1.00 \\
+bathroom SR & 0.33 & 0.67 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 0.67 & 0.67 & 1.00 \\
+eval return IQM & 15.70 & 17.96 & 0.22 & 20.64 & 25.56 & 21.73 & 0.24 & 18.51 & 17.76 & 25.13 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \textbf{Third, this exhausts the axis.} Across removal, flicker, aliasing, and sensor noise,
 the pre-registered set of single-map observation degradations, no rung meets the precondition.
 The pre-registered primary endpoint is defined only on a rung passing the attribution guard of
 step~5 below, and no rung did. The gap was therefore never computed on a qualifying cell, and
 Table~\ref{tab:ladder} is symmetric-only for exactly that reason: the non-computation
-\emph{is} the result. Why the task resists every manipulation, namely that its observation is
-over-determined, its optimal policy reactive, and its single layout memorisable, is analysed
-in Appendix~\ref{app:mechanism}. Every aggregate reported here regenerates from the released
+\emph{is} the result. Every aggregate reported here regenerates from the released
 per-seed CSVs under a seeded bootstrap (Appendix~\ref{app:repro}).
+
+\section{Why the task resists the ladder}
+\label{sec:why}
+
+Three properties of the task together explain why no manipulation induced a hard-to-represent
+policy. First, the observation is \textbf{redundant}: multiple channels each independently
+suffice for competent navigation, so removing any one leaves the others to carry the load. Six
+of sixteen dimensions can be removed with all three rooms still solved in 100\% of episodes
+(Appendix~\ref{app:mechanism}). Second, the optimal policy is \textbf{reactively solvable}, a
+simple function of the current observation, so manipulations that attack the availability of
+information, such as flickering, do not change the complexity of the function mapping
+observations to actions. Third, a single fixed layout is \textbf{memorisable}: a policy can
+encode routes specific to this map rather than compute them from the observation, which leaves
+it robust to noise in any one channel. The precondition the hypothesis requires, a policy hard
+to represent while the value function stays smooth, is a property of the task's \emph{decision
+structure}, not of its observation vector. Degrading the observation can make information
+scarcer, narrower, or noisier without making the underlying decision function any harder to
+represent.
 
 \section{The protocol}
 \label{sec:protocol}
@@ -300,7 +357,21 @@ uninformative on non-local inputs but mildly \emph{harmful}, since the CNN is co
 seek local structure the scrambled task no longer contains while the position-agnostic MLP is
 unencumbered. This does not weaken the control; the effect still appears and vanishes with
 $S$. But a prediction missed, and we let it stand rather than round it to the number we
-pre-registered. A researcher who evaluated only $q=1$ would not see a tie: they would see the
+pre-registered.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.58\linewidth]{pc_dose_response.png}
+\caption{The positive control: CNN and parameter-matched MLP test accuracy (IQM $+$ 95\% CI,
+10 seeds) against scramble fraction $q$. As spatial locality is destroyed the CNN--MLP gap
+shrinks monotonically and then inverts, while the MLP stays flat, because each rung is a
+bijection and the learning problem is unchanged up to a relabeling of input units. This is the
+effect appearing and vanishing with $S$, made visible: the protocol reports \emph{yes} at
+$q=0$ and \emph{no} at $q=1$. Full dose-response in Appendix~\ref{app:poscontrol}.}
+\label{fig:pc}
+\end{figure}
+
+A researcher who evaluated only $q=1$ would not see a tie: they would see the
 CNN lose by two and a half points and conclude that convolution is harmful for image
 classification, a confident wrong answer from a sound multi-seed measurement of a meaningless
 comparison. That is the structural position of anyone concluding ``asymmetry hurts in RL''
@@ -314,18 +385,24 @@ The null is generative: the analysis that shows this task cannot test the hypoth
 specifies what a task that \emph{could} would look like. We state it as a property list a
 future benchmark can be built against, rather than a vague call for harder tasks.
 \textbf{(i)~Genuine, unroutable partial observability.} Hidden state that cannot be recovered
-from any single observation \emph{and} cannot be memorised away, which means procedurally
-generated or changing layouts, so no fixed-map shortcut exists and the optimal policy must
-integrate history every episode. Procedurally generated suites already supply this in
-controlled form \citep{cobbe2020procgen,chevalier2023minigrid}.
+from any single observation \emph{and} cannot be memorised away: for example, procedurally
+generated layouts that vary across episodes, or a goal location revealed once and then
+occluded, so no fixed-map shortcut exists and the optimal policy must integrate history every
+episode. Procedurally generated suites already supply this in controlled form
+\citep{cobbe2020procgen,chevalier2023minigrid}.
 \textbf{(ii)~Non-redundant observation.} Each policy-relevant distinction encoded once, so a
-targeted removal actually removes it rather than leaving parallel channels to carry the load.
+targeted removal actually removes it rather than leaving parallel channels to carry the load:
+for example, an egocentric sensor with no global position channel, so that deleting the sensor
+deletes the information rather than displacing the agent onto a redundant one.
 \textbf{(iii)~A longer horizon with real credit assignment.} Enough temporal depth that the
 optimal policy must compose sub-decisions, making its representation a compositional problem
-rather than a one-step lookup. \textbf{(iv)~A policy that is a sharp function even under full
-information.} Hardness intrinsic to the optimal \emph{mapping}, with high-frequency structure
-and many decision boundaries, rather than induced by hiding information, so that policy
-capacity is taxed while value stays comparatively smooth. That last property is precisely the
+rather than a one-step lookup: for example, a task requiring a key to be fetched before a door
+becomes passable, where the reward for the first sub-decision arrives only after the second.
+\textbf{(iv)~A policy that is a sharp function even under full information.} Hardness intrinsic
+to the optimal \emph{mapping}, with high-frequency structure and many decision boundaries,
+rather than induced by hiding information: for example, narrow corridors or hazard margins
+where the correct action changes between adjacent states while the value function varies
+smoothly across them, so that policy capacity is taxed while value stays comparatively smooth. That last property is precisely the
 asymmetry the hypothesis is about, and precisely what the present task lacks. A task meeting
 this specification would place the precondition inside a learnable regime, and the comparison
 could be run where it is meaningful. Whether the inverted-asymmetry advantage then appears is

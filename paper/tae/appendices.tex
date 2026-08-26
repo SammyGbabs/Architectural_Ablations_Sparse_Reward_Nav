@@ -170,7 +170,7 @@ success-rate heatmap across the 10 seeds, kitchen abandoned 10/10 and bedroom so
 \end{figure}
 
 \paragraph{Per-seed outcomes at matched budget.} The fragmentation reported in the body is a
-statement about the \emph{distribution} across seeds, so Table~\ref{tab:perseed} gives the
+statement about the \emph{distribution} across seeds, so Table~\ref{tab:perseed} in the body gives the
 per-seed data it rests on. Two features stand out against the 200k result. First, the kitchen,
 abandoned by every seed at 200k, is solved by five of ten seeds here, while the bedroom,
 solved by every seed at 200k, is abandoned outright by seeds 2 and 6: no room is categorically
@@ -179,30 +179,6 @@ out of reach, and no room is reliably reached. Second, seeds 2 and 6 carry very 
 them a majority of episodes on the room they abandoned. This illustrates why per-room SR and
 aggregate return are reported separately rather than one being inferred from the other.
 
-\begin{table}[h]
-\caption{Per-seed outcomes for the $p=0.8$ flicker cell at the matched 500k budget.}
-\label{tab:perseed}
-\centering
-\small
-\begin{tabular}{llllll}
-\toprule
-Seed & kitchen SR & bedroom SR & bathroom SR & eval return IQM & regime \\
-\midrule
-0 & 0.00 & 1.00 & 0.33 & 15.70 & bedroom $+$ partial bathroom \\
-1 & 0.00 & 1.00 & 0.67 & 17.96 & bedroom $+$ partial bathroom \\
-2 & 1.00 & 0.00 & 1.00 & \phantom{0}0.22 & kitchen $+$ bathroom, bedroom abandoned \\
-3 & 0.00 & 1.00 & 1.00 & 20.64 & bedroom $+$ bathroom, kitchen abandoned \\
-4 & 1.00 & 1.00 & 1.00 & 25.56 & \textbf{all three rooms} \\
-5 & 0.00 & 1.00 & 1.00 & 21.73 & bedroom $+$ bathroom, kitchen abandoned \\
-6 & 1.00 & 0.00 & 1.00 & \phantom{0}0.24 & kitchen $+$ bathroom, bedroom abandoned \\
-7 & 1.00 & 0.50 & 0.67 & 18.51 & kitchen $+$ partial bedroom/bathroom \\
-8 & 0.00 & 1.00 & 0.67 & 17.76 & bedroom $+$ partial bathroom \\
-9 & 1.00 & 1.00 & 1.00 & 25.13 & \textbf{all three rooms} \\
-\midrule
-\textbf{seed-mean} & \textbf{0.50} & \textbf{0.75} & \textbf{0.83} & \textbf{13.24} & fragmentation \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \clearpage
 \section{Positive control in full}
@@ -235,14 +211,6 @@ $q$ & CNN test acc.\ (IQM, 95\% CI) & MLP test acc.\ (IQM, 95\% CI) & gap \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.55\linewidth]{pc_dose_response.png}
-\caption{The dose-response of Table~\ref{tab:pc} plotted: CNN and MLP test accuracy versus
-scramble fraction $q$, with 95\% CI bands. The CNN starts high, declines monotonically, and
-crosses the flat MLP near $q\approx0.55$.}
-\label{fig:pc}
-\end{figure}
 
 \paragraph{The frozen predictions.} \textbf{P1}, the CNN degrades monotonically as
 $q \to 1$; \textbf{P2}, the MLP's achievable accuracy is identical, since the learning problem
