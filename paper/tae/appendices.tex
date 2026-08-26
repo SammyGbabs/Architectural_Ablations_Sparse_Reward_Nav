@@ -32,7 +32,7 @@ actor--critic split) vary width, discount, exploration schedule, and buffer, and
 deliberately destabilised settings retained to replicate the original DQN table faithfully.
 All nine share the frozen environment, the 200k-step budget, and 10 seeds.
 
-\begin{table}[h]
+\begin{table}[!htbp]
 \caption{The nine Phase-1 configurations. PPO spans the actor:critic ratio; DQN is the
 value-based comparator family for the sample-efficiency claim.}
 \label{tab:configs}
@@ -86,7 +86,7 @@ ${\approx}20$--$45$k band, and the single configuration that leaves it, PPO Exp 
 steps, is the \emph{slowest} of either family. On an exemplar-independent reading PPO is no
 faster than DQN, and the one salient difference runs opposite to the claimed $12.5\times$.
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.66\linewidth]{p1_iqm_main_configs.png}
 \caption{Per-configuration IQM eval return with 95\% stratified-bootstrap CIs across the nine
@@ -94,7 +94,7 @@ main configurations, 10 seeds each.}
 \label{fig:p1iqm}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.55\linewidth]{p1_perf_profile_ppo_inverted_vs_symmetric.png}
 \caption{Performance profile: fraction of runs exceeding a return threshold, inverted (Exp 4)
@@ -102,7 +102,7 @@ versus symmetric (Exp 1). The two curves overlap across the range.}
 \label{fig:p1prof}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.66\linewidth]{p1_sample_efficiency_ppo_vs_dqn.png}
 \caption{Sample efficiency: environment steps to 90\% of asymptotic IQM (IQM $+$ 95\% CI),
@@ -124,7 +124,7 @@ bedroom is solved), so difficulty is geometry- and approach-dependent, not dista
 and no single flicker rate places all rooms in a partial band. This directed the aliasing rung
 and is reported as calibration, not as a result.
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.52\linewidth]{p2_rung3_blackout_vs_p.png}
 \caption{$P(\text{disabling blackout} \geq 1$ per episode$)$ versus flicker probability $p$ at
@@ -133,7 +133,7 @@ shaded.}
 \label{fig:blackout}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.52\linewidth]{p2_rung3_observed_vs_predicted.png}
 \caption{Model-predicted (distance-$H$-based) per-room difficulty versus observed per-room
@@ -149,7 +149,7 @@ occasional blackouts, not sub-ceiling difficulty. At $p=0.7$, 9/10 seeds reach f
 the tenth (seed 9) plateaus partway with bathroom SR 0.33, which the IQM trims but which
 exists, and which is why that cell's per-room bathroom SR is 0.93 rather than 1.00.
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.70\linewidth]{p2_ladder_iqm.png}
 \caption{The ladder cells of Table~\ref{tab:ladder} plotted: per-cell IQM eval return $+$ 95\%
@@ -160,7 +160,7 @@ differ only in per-seed distribution.}
 \label{fig:ladder}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.92\linewidth]{p2_flicker08_perseed.png}
 \caption{The $p=0.8$ fracture at the 200k budget, per seed. Left: outcome split (success /
@@ -192,7 +192,7 @@ $q \to 1$ is only spatial locality. The CNN and the MLP are parameter-matched at
 parameters each, run at 10 seeds and a fixed sub-asymptotic budget where the convolutional
 advantage is widest.
 
-\begin{table}[h]
+\begin{table}[!htbp]
 \caption{Positive-control dose-response: CNN versus parameter-matched MLP test accuracy
 (IQM $+$ 95\% CI, 10 seeds) at each scramble fraction $q$.}
 \label{tab:pc}
