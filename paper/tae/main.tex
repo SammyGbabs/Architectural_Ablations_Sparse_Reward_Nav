@@ -35,6 +35,13 @@
 \setlength{\@fpbot}{0pt plus 1fil}
 \makeatother
 
+% The template separates paragraphs by \parskip alone (\parindent is 0), and its 5.5pt
+% default sits well below the ~12pt that \paragraph blocks receive from \@startsection,
+% so ordinary paragraphs run together while the \paragraph-led threads in Sec. 2 sit far
+% apart. A modest uniform bump evens this out; it stays below the \paragraph skip and adds
+% roughly 0.07 page across the body.
+\setlength{\parskip}{7pt}
+
 % Let LaTeX pack several appendix figures onto a float page rather than stranding one
 % per page. Standard float-placement parameters only.
 \renewcommand{\topfraction}{0.9}
@@ -57,9 +64,9 @@ to exploit. When it does not, a
 null is uninformative and a single-seed positive is unfalsifiable noise. Yet both are
 routinely reported as evidence. We give a pre-registered protocol for deciding whether a
 task can arbitrate an architecture hypothesis at all, before trusting any comparison run on
-it: state the structural precondition; build a graded manipulation ladder targeting it; gate
-each rung for learnability with one seed; promote only load-bearing rungs to multi-seed
-evaluation; and attribute any induced hardness to the precondition rather than a confound
+it: state the structural precondition, build a graded manipulation ladder targeting it, gate
+each rung for learnability with one seed, promote only load-bearing rungs to multi-seed
+evaluation, and attribute any induced hardness to the precondition rather than a confound
 before comparing architectures. Instantiated on a claim from our own earlier, unpublished
 work, that an inverted actor--critic asymmetry improves sparse-reward navigation, the
 protocol first finds the single-seed advantage does not replicate (IQM $27.56$ vs $27.66$,
