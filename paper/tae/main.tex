@@ -13,6 +13,20 @@
 \usepackage[dblblindworkshop]{neurips_2026}
 \workshoptitle{TAE (Trust-AI-Eval): Can We Trust AI Evaluation?}
 
+% The template wires \workshoptitle into \@trackname, but \@trackname is referenced only
+% inside the \if@neuripsfinal branch, so a *submission* build falls back to the generic
+% "Submitted to ... Do not distribute." footer and the workshop is never named. Verified by
+% compiling with [dblblindworkshop, final], which does emit the workshop line. We restore the
+% workshop identifier on the submission footer without editing the .sty.
+% NOTE: if you swap in the official neurips_2026.sty from the author kit, re-check whether
+% this override is still needed; it may be redundant or wrong against the official file.
+\makeatletter
+\renewcommand{\@noticestring}{%
+  Submitted to \@neuripsordinal\/ Conference on Neural Information Processing Systems
+  (NeurIPS \@neuripsyear). Workshop: \@workshoptitle. Do not distribute.%
+}
+\makeatother
+
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{hyperref}
