@@ -57,3 +57,4 @@ paper/tae/*.synctex.gz
 paper/tae/*.fdb_latexmk
 paper/tae/*.fls
 paper/tae/*.bak
+paper/tae/*.prev
