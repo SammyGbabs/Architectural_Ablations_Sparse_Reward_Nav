@@ -71,3 +71,6 @@ paper/newinml/*.fdb_latexmk
 paper/newinml/*.fls
 paper/newinml/*.bak
 paper/newinml/*.prev
+
+# Internal project conventions doc (kept locally, not published)
+CLAUDE.md
