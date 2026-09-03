@@ -42,18 +42,23 @@
 
 % ---------------------------------------------------------------------------
 % Author block: PREPRINT ONLY. Compiled out entirely for the blind build.
-% NOTE (finalise before any arXiv upload): the second author's full given name, the
-% exact affiliation split, and the repo URL are placeholders from repository metadata.
+% Finalised author list, affiliations, and marks (2026-09-04).
 % ---------------------------------------------------------------------------
 \ifdefined\ispreprint
 \author{%
-  Samuel Oluwajunwonlo Babalola\\
-  African Leadership University\\
-  \texttt{s.babalola@alustudent.com}
-  \AND
-  E.\ Akinloye\\
-  African Leadership University\\
-  \texttt{e.akinloye@alustudent.com}
+  Samuel Babalola\textsuperscript{1,2,3,*},
+  Anjeline Noel Odero\textsuperscript{1,2,\dag},
+  Sumba Mabumba Branis\textsuperscript{1,2,\dag},\\[0.35ex]
+  Marvin Ogore\textsuperscript{1,2},
+  Simeon Nsabiyumva\textsuperscript{1}\\[1.0ex]
+  {\normalfont\small
+   \textsuperscript{1}African Leadership University\quad
+   \textsuperscript{2}Ruzivo Research Lab\quad
+   \textsuperscript{3}ML Collective\\[0.55ex]
+   \texttt{sbabalola@alueducation.com}, \texttt{a.odero@alustudent.com}, \texttt{b.sumba@alustudent.com},\\[0.15ex]
+   \texttt{mogore@alueducation.com}, \texttt{snsabiyumva@alueducation.com}\\[0.55ex]
+   \textsuperscript{*}Corresponding author: \texttt{sbabalola@alueducation.com}\quad
+   \textsuperscript{\dag}These authors contributed equally.}
 }
 \fi
 
@@ -285,7 +290,7 @@ seeds.
 \caption{The nine Phase-1 configurations. PPO spans the actor:critic ratio (H1); DQN is the
 value-based comparator family for the sample-efficiency claim (Result 2).}
 \label{tab:configs}
-\begin{tabular}{llll}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.6cm} l >{\raggedright\arraybackslash}p{4.6cm} >{\raggedright\arraybackslash}p{6.2cm}}
 \toprule
 Family & Config & Network (actor $\pi$ / critic $v$; DQN: Q-net) & Ratio / role \\
 \midrule
@@ -463,7 +468,7 @@ calibration and appear nowhere in this table. ``Patterns'' counts the distinct p
 (kitchen, bedroom, bathroom) SR combinations observed across the ten seeds: 1 means every
 seed landed in the same behavioural regime, and a large count means the seeds scattered.}
 \label{tab:ladder}
-\begin{tabular}{lllllll}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.5cm} l l >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{2.35cm} >{\raggedright\arraybackslash}p{1.3cm} >{\raggedright\arraybackslash}p{2.65cm}}
 \toprule
 Cell & obs & steps & IQM eval return (95\% CI) & per-room SR (k/bed/bath) & patterns & behavioural regime \\
 \midrule
@@ -893,6 +898,21 @@ precondition is present in a learnable regime and the architecture comparison ca
 run. Constructing that task and testing inverted asymmetry where it \emph{can} be tested is
 the natural next step; the specification above is written to make it buildable.
 
+\ifdefined\ispreprint
+\section*{Author Contributions}
+
+SB conceived the study, designed the pre-registered protocol, implemented and ran all
+experiments, conducted the analysis, and drafted the manuscript. AO and BS contributed
+equally to experimental infrastructure and analysis review. MO and SN provided supervision
+and critical feedback throughout the project. All authors reviewed and approved the final
+manuscript.
+
+\section*{Acknowledgements}
+
+We thank Eunice Adewusi for her contributions to the earlier, unpublished version of this
+work, including the ethics review and writing of the ethics section.
+\fi
+
 \bibliographystyle{tmlr}
 \bibliography{references}
 
@@ -911,7 +931,7 @@ distinct (kitchen, bedroom, bathroom) combinations occur across the ten seeds.
 \centering
 \caption{Per-seed outcomes for the $p=0.8$ flicker cell at the matched 500k budget.}
 \label{tab:perseed}
-\begin{tabular}{llllll}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.2cm} >{\raggedright\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}p{1.9cm} >{\raggedright\arraybackslash}p{5.0cm}}
 \toprule
 Seed & kitchen SR & bedroom SR & bathroom SR & eval return IQM & regime \\
 \midrule
@@ -965,10 +985,8 @@ claim of this paper rests; they are included so that the ordering of design deci
 to results can be independently checked.
 
 \ifdefined\ispreprint
-Code and data are additionally available at
+Code, per-seed data, pre-registrations, and paper source are available at
 \url{https://github.com/SammyGbabs/Architectural_Ablations_Sparse_Reward_Nav}.
-% TODO (before arXiv upload): confirm this is the intended public URL for the active
-% rework repository (distinct from the frozen earlier-submission repo).
 \fi
 
 \end{document}
