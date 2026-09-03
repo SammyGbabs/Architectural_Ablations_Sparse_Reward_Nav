@@ -28,3 +28,49 @@ wandb/
 # Generated figure exports (PNGs are tracked; vector/PDF exports are not)
 figures/*.svg
 figures/*.pdf
+
+# positive-control MNIST cache
+data/
+
+# LaTeX build (paper/) — track the source (main.tex, *.sty, *.bst, references.bib);
+# ignore compiled output and intermediates. The packaged supplementary archive
+# (paper/supplementary_material.zip) is already covered by the global *.zip rule above.
+paper/*.pdf
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.toc
+
+# LaTeX build (paper/tae/) — TAE workshop version; track source, ignore output
+paper/tae/*.pdf
+paper/tae/*.aux
+paper/tae/*.log
+paper/tae/*.out
+paper/tae/*.bbl
+paper/tae/*.blg
+paper/tae/*.synctex.gz
+paper/tae/*.fdb_latexmk
+paper/tae/*.fls
+paper/tae/*.bak
+paper/tae/*.prev
+
+# LaTeX build (paper/newinml/) — NewInML workshop version; track source, ignore output
+paper/newinml/*.pdf
+paper/newinml/*.aux
+paper/newinml/*.log
+paper/newinml/*.out
+paper/newinml/*.bbl
+paper/newinml/*.blg
+paper/newinml/*.synctex.gz
+paper/newinml/*.fdb_latexmk
+paper/newinml/*.fls
+paper/newinml/*.bak
+paper/newinml/*.prev
+
+# Internal project conventions doc (kept locally, not published)
+CLAUDE.md

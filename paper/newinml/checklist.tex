@@ -1,0 +1,175 @@
+%%%% NeurIPS paper checklist. Answers reflect the submitted version only.
+%%%% Anonymity: no answer may name an author, institution, or repository.
+
+\begin{enumerate}
+
+\item {\bf Claims}\\
+Do the main claims made in the abstract and introduction accurately reflect the paper's
+contributions and scope?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: The abstract and introduction claim exactly two things, a reusable
+  pre-registered protocol and a worked negative outcome, and both are delivered in
+  \S\ref{sec:protocol} and \S\ref{sec:results}. The abstract states explicitly that the
+  result is a statement about the task rather than evidence against the architecture
+  hypothesis, which is the paper's central scope limit.
+\end{itemize}
+
+\item {\bf Limitations}\\
+Does the paper discuss the limitations of the work performed by the authors?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: \S\ref{sec:discussion} states the scope limit directly: we show this
+  task class cannot test the hypothesis, and explicitly have \emph{not} shown that inverted
+  asymmetry fails in reinforcement learning generally. \S\ref{sec:poscontrol} reports a
+  pre-registered prediction (P3) that was wrong, and Appendix~\ref{app:mechanism} flags the
+  memorisation account as an interpretation consistent with the data rather than a directly
+  measured property. The positive control is on image classification, not RL, which is stated
+  as a limitation rather than glossed.
+\end{itemize}
+
+\item {\bf Theory assumptions and proofs}\\
+Does the paper provide the full set of assumptions and a complete (and correct) proof?
+\answerNA{}
+\begin{itemize}
+\item[] Justification: The paper is empirical and methodological; it contains no theoretical
+  results or proofs.
+\end{itemize}
+
+\item {\bf Experimental result reproducibility}\\
+Does the paper fully disclose all the information needed to reproduce the main experimental
+results?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: Appendix~\ref{app:repro} describes the full pipeline. All
+  hyperparameters live in configuration files included in the supplementary material, the
+  environment and observation-wrapper code is included, training is seeded end-to-end, and the
+  bootstrap resampling seed is fixed so that every reported confidence interval reproduces to
+  the digit from the released per-seed CSVs.
+\end{itemize}
+
+\item {\bf Open access to data and code}\\
+Does the paper provide open access to the data and code, with sufficient instructions to
+faithfully reproduce the main experimental results?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: An anonymised supplementary archive accompanies the submission
+  containing the per-seed CSVs, the analysis and plotting scripts, the environment and wrapper
+  code, the configuration files, and the frozen pre-registration documents, with reproduction
+  commands in its README. A public repository link will be added in the camera-ready version.
+\end{itemize}
+
+\item {\bf Experimental setting/details}\\
+Does the paper specify all the training and test details necessary to understand the results?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: \S\ref{sec:phase1} gives the environment, action space, observation
+  dimension, reward function, and step budget. Appendix~\ref{app:phase1} gives the full
+  configuration table with per-configuration network architectures and the varied
+  hyperparameters. Appendix~\ref{app:phase2} gives the ladder mechanisms and their parameters;
+  every remaining hyperparameter is in the supplementary configuration files.
+\end{itemize}
+
+\item {\bf Experiment statistical significance}\\
+Does the paper report error bars suitably and correctly defined or other appropriate
+information about the statistical significance of the experiments?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: Every aggregate is an interquartile mean with a 95\% stratified
+  bootstrap confidence interval over 10 seeds, computed with rliable. The aggregation
+  conventions, including the seed-mean definition for per-room success rates and the exclusion
+  of a sentinel value from the sample-efficiency statistic, are stated in
+  Appendix~\ref{app:phase1}. Single-seed results are used only as learnability gates and are
+  never reported as findings, a distinction the paper states explicitly and enforces.
+\end{itemize}
+
+\item {\bf Experiments compute resources}\\
+Does the paper provide sufficient information on the computer resources needed to reproduce
+the experiments?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: All runs were executed serially on a single commodity cloud GPU
+  instance. Each Phase 1 configuration is 10 seeds at 200k environment steps; the Phase 2
+  ladder adds six 10-seed cells at 200k or 500k steps. The positive control is CPU-feasible at
+  10 seeds and a two-epoch budget. Per-run step budgets are given in
+  Table~\ref{tab:ladder} and Appendix~\ref{app:phase1}.
+\end{itemize}
+
+\item {\bf Code of ethics}\\
+Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of
+Ethics?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: The work uses a synthetic grid-world environment and MNIST. It involves
+  no human subjects, no personal data, and no deployed system.
+\end{itemize}
+
+\item {\bf Broader impacts}\\
+Does the paper discuss both potential positive societal impacts and negative societal impacts
+of the work performed?
+\answerNA{}
+\begin{itemize}
+\item[] Justification: The contribution is a methodological check on whether a benchmark can
+  test a hypothesis. Its foreseeable effect is on evaluation practice within machine learning
+  research, and we identify no direct societal impact, positive or negative, beyond improved
+  reliability of published empirical claims.
+\end{itemize}
+
+\item {\bf Safeguards}\\
+Does the paper describe safeguards that have been put in place for responsible release of data
+or models that have a high risk for misuse?
+\answerNA{}
+\begin{itemize}
+\item[] Justification: The released artifacts are small grid-world policies, analysis scripts,
+  and per-seed result tables. They carry no misuse risk.
+\end{itemize}
+
+\item {\bf Licenses for existing assets}\\
+Are the creators or original owners of assets used in the paper properly credited and are the
+license and terms of use explicitly mentioned and properly respected?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: The paper cites the rliable evaluation methodology, the PPO algorithm,
+  and MNIST-based experimental design, and the supplementary material lists all software
+  dependencies with their versions. All are standard open-source research assets used in
+  accordance with their licenses.
+\end{itemize}
+
+\item {\bf New assets}\\
+Are new assets introduced in the paper well documented and is the documentation provided
+alongside the assets?
+\answerYes{}
+\begin{itemize}
+\item[] Justification: The supplementary archive documents the environment, the four
+  observation-degradation wrappers, the analysis scripts, and the per-seed data, with a README
+  giving the layout, a data-to-claim map linking each paper element to the CSV and script that
+  produce it, and reproduction commands.
+\end{itemize}
+
+\item {\bf Crowdsourcing and research with human subjects}\\
+Does the paper include the full text of instructions given to participants and screenshots, if
+applicable, as well as details about compensation?
+\answerNA{}
+\begin{itemize}
+\item[] Justification: The paper involves no crowdsourcing and no human subjects.
+\end{itemize}
+
+\item {\bf Institutional review board (IRB) approvals}\\
+Does the paper describe potential risks incurred by study participants, disclose whether such
+risks were disclosed to the subjects, and obtain IRB approvals?
+\answerNA{}
+\begin{itemize}
+\item[] Justification: The paper involves no human subjects, so no IRB review was required.
+\end{itemize}
+
+\item {\bf Declaration of LLM usage}\\
+Does the paper describe the usage of LLMs if it is an important, original, or non-standard
+component of the core methods in this research?
+\answerNA{}
+\begin{itemize}
+\item[] Justification: No large language model forms any part of the core method. The
+  contribution is an experimental protocol and its instantiation on reinforcement-learning and
+  image-classification tasks.
+\end{itemize}
+
+\end{enumerate}

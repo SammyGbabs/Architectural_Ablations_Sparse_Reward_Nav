@@ -1,0 +1,11 @@
+phase,config_id,algo,seed,env_steps,eval_return_iqm,eval_return_mean,success_rate,collision_rate,mean_ep_len,wait_freq,sr_kitchen,sr_bedroom,sr_bathroom,len_kitchen,len_bedroom,len_bathroom,sample_eff_steps_90,n_eval_episodes,wandb_run_name
+p2,p2_flicker08_sym,ppo,0,200704,7.444444,6.426667,0.533333,0.0,75.866667,0.0,0.0,1.0,0.0,150.0,11.0,150.0,100000,15,ppo_p2_flicker08_sym_seed0
+p2,p2_flicker08_sym,ppo,1,200704,19.255556,13.646667,0.666667,0.133333,42.066667,0.004,0.0,1.0,0.666667,116.0,11.0,26.333333,120000,15,ppo_p2_flicker08_sym_seed1
+p2,p2_flicker08_sym,ppo,2,200704,21.0,14.56,0.733333,0.0,53.2,0.079556,0.0,1.0,1.0,150.0,11.0,36.666667,60000,15,ppo_p2_flicker08_sym_seed2
+p2,p2_flicker08_sym,ppo,3,200704,7.444444,6.426667,0.533333,0.0,75.866667,0.0,0.0,1.0,0.0,150.0,11.0,150.0,120000,15,ppo_p2_flicker08_sym_seed3
+p2,p2_flicker08_sym,ppo,4,200704,22.144444,15.246667,0.733333,0.066667,44.933333,0.01346,0.0,1.0,1.0,118.75,11.0,37.0,200000,15,ppo_p2_flicker08_sym_seed4
+p2,p2_flicker08_sym,ppo,5,200704,7.444444,6.426667,0.533333,0.0,75.866667,0.214222,0.0,1.0,0.0,150.0,11.0,150.0,20000,15,ppo_p2_flicker08_sym_seed5
+p2,p2_flicker08_sym,ppo,6,200704,7.444444,6.426667,0.533333,0.0,75.866667,0.016,0.0,1.0,0.0,150.0,11.0,150.0,20000,15,ppo_p2_flicker08_sym_seed6
+p2,p2_flicker08_sym,ppo,7,200704,19.322222,14.326667,0.666667,0.2,32.533333,0.000444,0.0,1.0,0.666667,80.25,11.0,26.333333,60000,15,ppo_p2_flicker08_sym_seed7
+p2,p2_flicker08_sym,ppo,8,200704,6.333333,5.6,0.533333,0.0,80.0,0.067111,0.0,1.0,0.0,150.0,18.75,150.0,180000,15,ppo_p2_flicker08_sym_seed8
+p2,p2_flicker08_sym,ppo,9,200704,7.444444,6.426667,0.533333,0.0,75.866667,0.04,0.0,1.0,0.0,150.0,11.0,150.0,20000,15,ppo_p2_flicker08_sym_seed9

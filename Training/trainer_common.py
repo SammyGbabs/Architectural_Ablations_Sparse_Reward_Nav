@@ -282,16 +282,36 @@ def replay_buffer_path_for(checkpoint_path: Path, run_name: str) -> Optional[Pat
 # Env construction (shared; same env for both algorithms)
 # ---------------------------------------------------------------------------
 
-def make_vec_env(seed: int):
-    """Monitor-wrapped, single-env DummyVecEnv training env, seeded."""
+# Config keys that select/parametrise a Phase 2 observation-wrapper rung. Absent
+# => the raw 16-D env (Phase 1 behaviour, unchanged).
+_OBS_WRAPPER_KWARGS = ("flicker_p", "stack_k", "prox_q")
+
+
+def build_raw_env(cfg: Optional[dict[str, Any]] = None):
+    """Construct the (single, non-vectorised) env, applying a Phase 2 observation
+    wrapper if ``cfg['obs_rung']`` is set (else the frozen 16-D env). The env
+    internals are untouched — only the emitted observation changes."""
+    from Environment.custom_env import ResidentialGridEnv
+
+    env = ResidentialGridEnv()            # T_max=150 default (experimental contract)
+    rung = (cfg or {}).get("obs_rung")
+    if rung:
+        from Environment.obs_variants import wrap_rung
+        kwargs = {k: cfg[k] for k in _OBS_WRAPPER_KWARGS if k in cfg}
+        env = wrap_rung(env, rung, **kwargs)
+    return env
+
+
+def make_vec_env(seed: int, cfg: Optional[dict[str, Any]] = None):
+    """Monitor-wrapped, single-env DummyVecEnv training env, seeded. Applies the
+    config's obs-wrapper rung (if any) before seeding/monitoring."""
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.vec_env import DummyVecEnv
 
-    from Environment.custom_env import ResidentialGridEnv
     from Training.seeds import seed_env
 
     def _factory():
-        env = ResidentialGridEnv()        # T_max=150 default (experimental contract)
+        env = build_raw_env(cfg)
         env = seed_env(env, seed)
         return Monitor(env)
 
@@ -300,10 +320,10 @@ def make_vec_env(seed: int):
     return vec_env
 
 
-def raw_eval_env():
-    """A raw (non-vectorised) eval env for RichEvalCallback."""
-    from Environment.custom_env import ResidentialGridEnv
-    return ResidentialGridEnv()
+def raw_eval_env(cfg: Optional[dict[str, Any]] = None):
+    """A raw (non-vectorised) eval env for RichEvalCallback — same obs-wrapper
+    rung as the training env so eval matches training."""
+    return build_raw_env(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -396,7 +416,10 @@ def run_training(
         print(f"[{tag}] wandb disabled (--wandb-mode disabled): skipping wandb.init")
 
     # ---- Env --------------------------------------------------------------
-    env = make_vec_env(spec.seed)
+    env = make_vec_env(spec.seed, cfg=cfg)      # applies cfg['obs_rung'] if set
+    if cfg.get("obs_rung"):
+        print(f"[{tag}] obs wrapper: rung={cfg['obs_rung']} "
+              f"-> {env.observation_space.shape}")
 
     # ---- Model: resume from latest checkpoint, or build fresh -------------
     resume_checkpoints = not (args.no_resume or args.fresh)
@@ -435,7 +458,7 @@ def run_training(
     rich_eval_cb = None
     if "eval_freq" in cfg:
         rich_eval_cb = RichEvalCallback(
-            eval_env_fn=raw_eval_env,
+            eval_env_fn=lambda: raw_eval_env(cfg=cfg),   # same obs rung as training
             eval_freq=int(cfg["eval_freq"]),
             n_eval_episodes=int(cfg.get("eval_episodes", 15)),
             best_model_path=str(ckpt_dir / f"{run_name}_best"),
@@ -463,10 +486,16 @@ def run_training(
         # Under --output-dir (Drive on Colab), NOT repo-relative, so it survives
         # disconnects. finalize_run_csv mkdir's the parent and upserts by
         # (config_id, seed), so re-runs/resumes overwrite rather than duplicate.
-        csv_path = csv_dir / f"{PHASE}_{cfg['config_id']}.csv"
+        # Phase prefix is config-overridable (cfg['phase'], default PHASE="p1");
+        # skip it when config_id already carries it, so a p2_* config lands as
+        # p2_*.csv (not p2_p2_*.csv) while p1 configs stay p1_*.csv.
+        phase = str(cfg.get("phase", PHASE))
+        cid = cfg["config_id"]
+        stem = cid if cid.startswith(f"{phase}_") else f"{phase}_{cid}"
+        csv_path = csv_dir / f"{stem}.csv"
         finalize_run_csv(
             csv_path,
-            phase=PHASE,
+            phase=phase,
             config_id=cfg["config_id"],
             algo=cfg["algo"],
             seed=spec.seed,

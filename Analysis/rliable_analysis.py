@@ -63,6 +63,23 @@ PHASE = "p1"
 # drop to e.g. 2_000 for a fast pass while iterating.
 REPS = int(os.environ.get("ARCH_ABLATIONS_REPS", "50000"))
 
+# rliable's stratified bootstrap draws from the global NumPy RNG, so an unseeded run
+# returns CI bounds that wobble in the last decimal or two between invocations. Every CI
+# in the paper is regenerated from committed CSVs, so those bounds must be reproducible to
+# the digit: seed immediately before each bootstrap call (see _seed_bootstrap). Changing
+# this value changes every published CI — treat it as frozen.
+BOOTSTRAP_SEED = int(os.environ.get("ARCH_ABLATIONS_BOOTSTRAP_SEED", "20260817"))
+
+
+def _seed_bootstrap() -> None:
+    """Reset the global NumPy RNG so the next rliable bootstrap is reproducible."""
+    np.random.seed(BOOTSTRAP_SEED)
+
+# Set ARCH_ABLATIONS_WRITE_FIGS=0 for a numbers-only pass that does NOT save (and so
+# never overwrites) the committed PNGs — e.g. a Phase-2-focused run that must leave
+# Figure 3 untouched. Default writes the figures as before.
+WRITE_FIGS = os.environ.get("ARCH_ABLATIONS_WRITE_FIGS", "1") != "0"
+
 # Per-seed scalar used as a run's "score" for cross-seed IQM. Eval is
 # deterministic within a seed (fixed spawn; only the target room varies), so
 # the per-seed mean and per-seed IQM are near-identical; mean is the run score.
@@ -113,12 +130,11 @@ def _log(line: str = "") -> None:
 # ---------------------------------------------------------------------------
 # Data loading: one CSV per config -> per-seed arrays
 # ---------------------------------------------------------------------------
-def load_config_frame(config_id: str) -> dict[str, np.ndarray] | None:
-    """Read p1_{config_id}.csv (one row per seed) into a {column: np.ndarray}
-    dict, sorted by seed. Numeric columns are float arrays (blank -> NaN);
-    non-numeric columns stay object arrays. None if the file is absent/empty.
-    stdlib csv only — no pandas dependency."""
-    path = DATA_DIR / f"{PHASE}_{config_id}.csv"
+def _read_seed_csv(path: Path) -> dict[str, np.ndarray] | None:
+    """Read a per-seed CSV (one row per seed) into a {column: np.ndarray} dict,
+    sorted by seed. Numeric columns -> float arrays (blank -> NaN); non-numeric
+    columns stay object arrays. None if the file is absent/empty. stdlib csv only
+    — no pandas dependency."""
     if not path.is_file():
         print(f"[warn] missing CSV (skipping): {path}")
         return None
@@ -136,6 +152,19 @@ def load_config_frame(config_id: str) -> dict[str, np.ndarray] | None:
         except ValueError:
             cols[key] = np.array(raw, dtype=object)          # e.g. wandb_run_name
     return cols
+
+
+def load_config_frame(config_id: str) -> dict[str, np.ndarray] | None:
+    """Phase-1 loader: read {PHASE}_{config_id}.csv (the PHASE prefix is added here)."""
+    return _read_seed_csv(DATA_DIR / f"{PHASE}_{config_id}.csv")
+
+
+def load_named_frame(stem: str) -> dict[str, np.ndarray] | None:
+    """Load DATA_DIR/{stem}.csv where the stem ALREADY carries its phase prefix
+    (e.g. 'p2_flicker08_500k_sym'). Phase-2 config_ids begin with 'p2_' and their
+    CSV is written as {config_id}.csv, so they load by stem rather than by adding
+    a prefix."""
+    return _read_seed_csv(DATA_DIR / f"{stem}.csv")
 
 
 def n_seeds(config_id: str) -> int:
@@ -180,6 +209,7 @@ def iqm_interval_estimates(sdict: dict[str, np.ndarray], reps: int = REPS):
     Returns (points, cis) where points[label] -> shape (1,) and
     cis[label] -> shape (2, 1) (low/high)."""
     iqm_fn = lambda x: np.array([metrics.aggregate_iqm(x)])
+    _seed_bootstrap()
     return rly.get_interval_estimates(sdict, iqm_fn, reps=reps)
 
 
@@ -219,6 +249,7 @@ def probability_of_improvement(better: str, worse: str, reps: int = REPS):
     """P(score(better) > score(worse)) with 95% CI (rliable, stratified boot)."""
     pairs = {f"{LABELS[better]},{LABELS[worse]}":
              (scores_of(better), scores_of(worse))}
+    _seed_bootstrap()
     probs, prob_cis = rly.get_interval_estimates(
         pairs, metrics.probability_of_improvement, reps=reps)
     key = list(pairs)[0]
@@ -351,9 +382,15 @@ _log(f"  final-return CIs overlap?     : {'YES' if ov_pd else 'NO'}")
 
 
 def sample_eff_iqm(config_id: str, reps: int = REPS):
-    """IQM + CI of steps-to-90% over NON-NaN seeds; (iqm, lo, hi, n_valid)."""
+    """IQM + CI of steps-to-90% over seeds that ACTUALLY reached 90%; (iqm, lo, hi, n_valid).
+
+    `sample_eff_steps_90 == -1` is the sentinel for "never reached 90% of the asymptotic
+    eval-return IQM within budget". It must be excluded before aggregating — averaging a
+    -1 into a step count is meaningless and silently drags the IQM downward (this is the
+    bug that produced the earlier 30.0k/18.3k figures for PPO Exp 4 / DQN Exp 2 instead of
+    the correct 32.0k/20.0k). Blanks (NaN) are excluded for the same reason."""
     raw = np.asarray(FRAMES[config_id][SAMPLE_EFF_COL], dtype=float)
-    valid = raw[~np.isnan(raw)]
+    valid = raw[(~np.isnan(raw)) & (raw > 0)]
     if valid.size < 3:
         return (np.nan, np.nan, np.nan, int(valid.size))
     pts, cis = iqm_interval_estimates({LABELS[config_id]: valid.reshape(-1, 1)}, reps)
@@ -514,8 +551,11 @@ ax.legend(handles=[
     loc="lower right", frameon=True)
 fig.tight_layout()
 fig1_path = FIG_DIR / "p1_iqm_main_configs.png"
-fig.savefig(fig1_path, dpi=300, bbox_inches="tight")
-print(f"[fig] wrote {fig1_path}")
+if WRITE_FIGS:
+    fig.savefig(fig1_path, dpi=300, bbox_inches="tight")
+    print(f"[fig] wrote {fig1_path}")
+else:
+    print(f"[fig] SKIP write (ARCH_ABLATIONS_WRITE_FIGS=0): {fig1_path}")
 plt.show()
 
 # %%
@@ -528,6 +568,7 @@ if "ppo_exp1" in FRAMES and "ppo_exp4" in FRAMES:
     lo = float(np.floor(all_scores.min())) - 1.0
     hi = float(np.ceil(all_scores.max())) + 1.0
     taus = np.linspace(lo, hi, 100)
+    _seed_bootstrap()
     profiles, profile_cis = rly.create_performance_profile(h1_dict, taus, reps=REPS)
 
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -544,8 +585,11 @@ if "ppo_exp1" in FRAMES and "ppo_exp4" in FRAMES:
     ax.set_title("H1 performance profile — PPO inverted vs symmetric")
     fig.tight_layout()
     fig2_path = FIG_DIR / "p1_perf_profile_ppo_inverted_vs_symmetric.png"
-    fig.savefig(fig2_path, dpi=300, bbox_inches="tight")
-    print(f"[fig] wrote {fig2_path}")
+    if WRITE_FIGS:
+        fig.savefig(fig2_path, dpi=300, bbox_inches="tight")
+        print(f"[fig] wrote {fig2_path}")
+    else:
+        print(f"[fig] SKIP write (ARCH_ABLATIONS_WRITE_FIGS=0): {fig2_path}")
     plt.show()
 
 # %%
@@ -581,11 +625,16 @@ for rows, color, grp in ((ppo_se, sns.color_palette("tab10")[0], "PPO"),
 ax.set_yticks(yticks); ax.set_yticklabels(ylabels)
 ax.set_xlabel("Sample efficiency — IQM env-steps to 90% asymptote (×10³, LOWER = better)")
 ax.set_title("PPO vs DQN sample efficiency (95% CI)")
-# annotate the representative ratio if available
-if np.isfinite(se_ppo[0]) and np.isfinite(se_dqn[0]) and se_ppo[0] > 0:
-    ax.annotate(f"{se_dqn[0] / se_ppo[0]:.1f}× PPO advantage\n(paper claimed ~12.5×)",
+# Annotate the finding, NOT a single representative ratio. The earlier
+# "{ratio}× PPO advantage" inset was orphaned: with the family-distribution framing
+# there is no single ratio, and the representative ratio (~0.5×) actually ran opposite
+# to the label (DQN faster). State what the plot shows instead.
+if ppo_se and dqn_se:
+    ax.annotate("PPO and DQN step-to-90% distributions overlap;\n"
+                "no resolvable PPO advantage (slowest config is PPO)\n"
+                "— original single-run claim was ~12.5×",
                 xy=(0.97, 0.05), xycoords="axes fraction", ha="right", va="bottom",
-                fontsize=10, bbox=dict(boxstyle="round", fc="w", ec="0.6"))
+                fontsize=9, bbox=dict(boxstyle="round", fc="w", ec="0.6"))
 from matplotlib.lines import Line2D
 ax.legend(handles=[Line2D([0], [0], marker="o", color="w",
                           markerfacecolor=sns.color_palette("tab10")[0], label="PPO"),
@@ -594,9 +643,99 @@ ax.legend(handles=[Line2D([0], [0], marker="o", color="w",
           loc="lower right" if False else "upper right")
 fig.tight_layout()
 fig3_path = FIG_DIR / "p1_sample_efficiency_ppo_vs_dqn.png"
-fig.savefig(fig3_path, dpi=300, bbox_inches="tight")
-print(f"[fig] wrote {fig3_path}")
+if WRITE_FIGS:
+    fig.savefig(fig3_path, dpi=300, bbox_inches="tight")
+    print(f"[fig] wrote {fig3_path}")
+else:
+    print(f"[fig] SKIP write (ARCH_ABLATIONS_WRITE_FIGS=0): {fig3_path}")
 plt.show()
+
+# %%
+# ---------------------------------------------------------------------------
+# G. Phase 2 — flicker p=0.8 fracture cell(s): IQM+CI, aggregate per-room SR,
+#    and the PER-SEED table. At 500k the 200k "10/10 kitchen-abandonment" pattern
+#    breaks up: seeds scatter into different local optima, so the per-seed
+#    heterogeneity — reported alongside the aggregate — IS the finding. Uses its
+#    own loader (Phase-2 CSVs carry the p2_ prefix in the filename) and is
+#    independent of the Phase-1 FRAMES dict above.
+# ---------------------------------------------------------------------------
+_log("")
+_log("=" * 74)
+_log("G. PHASE 2 - flicker p=0.8 fracture cell(s) (per-seed heterogeneity)")
+_log("=" * 74)
+
+# stem (== config_id, already p2-prefixed) -> human label.
+P2_FRACTURE_CELLS = {
+    "p2_flicker08_sym":      "flicker p=0.8 (200k)",
+    "p2_flicker08_500k_sym": "flicker p=0.8 (500k)",
+}
+ROOM_SR_COLS = ("sr_kitchen", "sr_bedroom", "sr_bathroom")
+
+# Per-room SR values are snapped to this many decimals before pattern bucketing, so two
+# float spellings of the same fraction (0.666666 vs 0.666667) cannot register as two
+# distinct behavioural patterns.
+SR_SNAP_DP = 3
+
+
+def analyse_p2_cell(stem: str, label: str, reps: int = REPS) -> None:
+    """For one Phase-2 cell: 10-seed IQM + 95% bootstrap CI of return, aggregate
+    per-room SR, and the full per-seed table (seed, eval_return_iqm, per-room SR,
+    plus success/collision for reading which local optimum each seed fell into)."""
+    cols = load_named_frame(stem)
+    if cols is None or not cols["seed"].size:
+        _log(f"  [skip] no CSV for {label}  ({DATA_DIR / (stem + '.csv')})")
+        return
+    seeds = cols["seed"].astype(int)
+    n = int(seeds.size)
+    order = np.argsort(seeds)
+
+    # (1) 10-seed IQM + 95% stratified-bootstrap CI of per-seed return.
+    score = np.asarray(cols[SCORE_COL], float).reshape(-1, 1)
+    pts, cis = iqm_interval_estimates({label: score}, reps)
+    iqm = float(pts[label][0]); lo = float(cis[label][0, 0]); hi = float(cis[label][1, 0])
+    _log("")
+    _log(f"  {label}  (n={n} seeds)")
+    _log(f"    IQM return (over per-seed mean) : {iqm:6.2f}   95% CI [{lo:6.2f}, {hi:6.2f}]")
+
+    # (2) aggregate per-room SR. DEFINITION (stated in the paper's §4 setup): the mean
+    # ACROSS SEEDS of each seed's own per-room SR fraction — deliberately NOT a pooled
+    # per-episode rate. Eval target rooms are sampled rather than balanced, so seeds have
+    # unequal per-room episode counts (e.g. the 500k cell's seed 2: kitchen 3/3,
+    # bedroom 0/8, bathroom 4/4, hence success_rate 0.467 rather than 0.667). Seed-mean
+    # keeps this aggregate arithmetically consistent with the per-seed table printed
+    # below — averaging that column reproduces this row — and is robust to that
+    # truncation; pooling would silently reweight seeds by their episode counts.
+    agg = {c: float(np.nanmean(np.asarray(cols[c], float))) for c in ROOM_SR_COLS}
+    _log(f"    aggregate per-room SR (seed-mean): "
+         f"kitchen {agg['sr_kitchen']:.3f} / bedroom {agg['sr_bedroom']:.3f} / "
+         f"bathroom {agg['sr_bathroom']:.3f}")
+
+    # (3) per-seed table — the heterogeneity is the finding.
+    srk = np.asarray(cols["sr_kitchen"], float)
+    srb = np.asarray(cols["sr_bedroom"], float)
+    srh = np.asarray(cols["sr_bathroom"], float)
+    ret_iqm = np.asarray(cols["eval_return_iqm"], float)
+    succ = np.asarray(cols["success_rate"], float)
+    coll = np.asarray(cols["collision_rate"], float)
+    _log("    per-seed table:")
+    _log(f"      {'seed':>4s} {'ret_iqm':>8s} {'sr_k':>5s} {'sr_bed':>6s} "
+         f"{'sr_bath':>7s} {'succ':>5s} {'coll':>5s}")
+    for i in order:
+        _log(f"      {seeds[i]:4d} {ret_iqm[i]:8.2f} {srk[i]:5.2f} {srb[i]:6.2f} "
+             f"{srh[i]:7.2f} {succ[i]:5.2f} {coll[i]:5.2f}")
+
+    # heterogeneity: how many DISTINCT per-room (k, bed, bath) outcome patterns?
+    patterns: dict[tuple, int] = {}
+    for i in range(n):
+        key = tuple(round(float(v[i]), SR_SNAP_DP) for v in (srk, srb, srh))
+        patterns[key] = patterns.get(key, 0) + 1
+    dom = max(patterns.values())
+    _log(f"    distinct per-room SR patterns    : {len(patterns)} across {n} seeds "
+         f"(largest shared by {dom}); 1 => homogeneous fracture, many => scattered optima.")
+
+
+for _p2_stem, _p2_label in P2_FRACTURE_CELLS.items():
+    analyse_p2_cell(_p2_stem, _p2_label)
 
 # %%
 # ---------------------------------------------------------------------------
@@ -608,7 +747,8 @@ print("# PHASE 1 - CONSOLIDATED SUMMARY (A-F)")
 print("#" * 74)
 for line in SUMMARY:
     print(line)
-print("\nFigures written:")
+print("\nFigures written:" if WRITE_FIGS
+      else "\nFigures NOT written (ARCH_ABLATIONS_WRITE_FIGS=0, numbers-only pass):")
 for p in ("p1_iqm_main_configs.png",
           "p1_perf_profile_ppo_inverted_vs_symmetric.png",
           "p1_sample_efficiency_ppo_vs_dqn.png"):
