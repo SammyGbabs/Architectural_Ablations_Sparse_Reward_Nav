@@ -1,269 +1,99 @@
-# Policy-Hard, Value-Easy: Inverted Actor-Critic Asymmetry in Deep RL for Assistive Indoor Navigation
+# Testable or Not? A Pre-Registered Validity Protocol for Architecture Comparisons
 
-[📄 Paper (Deep Learning Indaba 2026 Submission)](docs/DLI.pdf) ·
-This repository contains the code accompanying the paper
-*"Policy-Hard, Value-Easy: Inverted Actor-Critic Asymmetry in Deep Reinforcement Learning Based Assistive Indoor Navigation."*
-We compare **Deep Q-Network (DQN)** and **Proximal Policy Optimization (PPO)**
-for autonomous navigation of a visually-impaired-user proxy in a custom
-grid-world that mimics a residential indoor layout, and empirically validate
-an **inverted actor-critic asymmetry** architecture (deeper policy,
-streamlined value network) for sparse-reward, topologically constrained
-navigation.
+This repository accompanies the paper *Testable or Not? A Pre-Registered Validity Protocol for Architecture Comparisons.* It contains the pre-registrations, per-seed data, analysis code, environment, and paper source needed to reproduce every claim in the paper under a seeded bootstrap.
 
-## Table of Contents
-- [Project Overview](#project-overview)
-- [Installation](#installation)
-- [Project Structure](#project-structure)
-- [Custom Environment](#custom-environment)
-- [Network Architectures](#network-architectures)
-- [Training](#training)
-- [Visualization](#visualization)
-- [Results](#results)
-- [Paper Reference](#paper-reference)
-- [License](#license)
-- [Contact](#contact)
+## What this paper does
 
-## Project Overview
-Indoor navigation for visually impaired users is a GPS-denied, safety-critical
-problem that traditional mobility aids cannot solve at the level of global
-path planning. This project contributes:
+Empirical architecture comparisons rest on an implicit assumption of testability: that the benchmark can actually arbitrate the hypothesis. When it cannot, statistical rigor measures the wrong thing. We give a pre-registered protocol for checking whether a task can arbitrate an architecture hypothesis at all, and demonstrate it on a case where the answer is no — including the mechanism that explains why. A positive control on image classification confirms the protocol also returns yes when the precondition is met.
 
-1. A lightweight **Gym-compatible grid-world environment** that abstracts the
-   topological structure of a residential space (four semantic rooms,
-   connecting hallway, static obstacles, and doorways) while remaining small
-   enough to support rapid iteration and ablation studies.
-2. A systematic **DQN vs PPO comparison** (5 DQN + 4 PPO configurations) on
-   success rate, collision rate, average steps, and average reward.
-3. Empirical validation of **inverted asymmetry** in actor-critic
-   networks — contrary to the standard heuristic that favours a larger
-   critic, we find that a deeper policy network combined with a streamlined
-   value network produces the best-performing PPO agent on this domain.
+## Repository origin
 
-![Environment Visualization](docs/environment_preview.png)
+This repository originated as the *Policy-Hard, Value-Easy* actor–critic study (unpublished, DLI 2026, rejected). The current paper is a construct-validity re-examination of that earlier work: it audits the original single-seed claims, finds they do not survive multi-seed evaluation, and abstracts the process into a reusable protocol. The old README and single-seed numbers have been superseded; see [`docs/rejected_submission_DLI2026.pdf`](docs/rejected_submission_DLI2026.pdf) for the original submission if needed.
 
-## Installation
+Concretely, the claims that did not survive re-examination were:
+
+| Original single-seed claim | Under 10-seed evaluation |
+|---|---|
+| Inverted asymmetry is the superior PPO architecture | IQM 27.56 vs 27.66, overlapping 95% CIs, bootstrap *P*(inverted > symmetric) = 0.25 |
+| PPO is ≈12.5× more sample-efficient than DQN | Step-to-90% distributions overlap; the slowest configuration in either family is a PPO one |
+
+The more useful finding is *why* the first null is uninformative: the task never contained the structure the hypothesis is about, so no comparison run on it could have arbitrated the claim either way.
+
+## Repository structure
+
+- **`Environment/`** — custom sparse-reward navigation env plus the four observability-degradation wrappers (pure removal, flicker + frame-stack, targeted aliasing, proximity noise).
+- **`Training/`** — training entry points (PPO, DQN), the sweep runners, per-seed reproducibility scaffolding (`seeds.py`, `trainer_common.py`), and baselines (A2C, Double DQN, Dueling DQN).
+- **`Analysis/`** — `rliable_analysis.py` (main aggregation, includes Section G for Phase 2), `positive_control.py` (MNIST CNN vs MLP), `plot_p2_ladder.py`, `rung3_difficulty_model.py`.
+- **`configs/`** — YAML configs for all nine Phase-1 cells, three baselines, and six Phase-2 ladder cells. Every hyperparameter lives here; none are hardcoded.
+- **`results/csv/`** — per-seed CSVs for every claim-grade cell (19 files). Every aggregate in the paper regenerates from these under the seeded bootstrap.
+- **`figures/`** — the eight paper figures at final `REPS=50000` seeded settings. [`figures/README.md`](figures/README.md) is the figure manifest.
+- **`paper/`** — LaTeX source for TMLR (`main.tex`), the TAE workshop (`tae/`), and the NewInML workshop (`newinml/`). Each is self-contained and builds independently.
+- **`docs/`** — the full paper draft in markdown ([`paper_draft.md`](docs/paper_draft.md)), the two frozen pre-registrations, the append-only [results log](docs/results_log.md), and the outline.
+
+## Reproducing the paper
+
+**Prerequisites.** Python 3.10+. Install with:
+
 ```bash
-git clone https://github.com/SammyGbabs/Samuel_Babalola_RL_Summative.git
-cd Samuel_Babalola_RL_Summative
 pip install -r requirements.txt
 ```
 
-**Dependencies:** Python 3.9+, Gymnasium, Stable-Baselines3, NumPy, Matplotlib.
-
-## Project Structure
-```
-Samuel_Babalola_RL_Summative/
-├── Environment/
-│   ├── custom_env.py            # Custom Gym environment (IndoorNavEnv)
-│   └── rendering.py             # Matplotlib-based top-down renderer + map data
-├── Notebooks/
-│   ├── DQN_Training.ipynb       # DQN training notebook (with plots)
-│   └── PPO_Training.ipynb       # PPO training notebook (with plots)
-├── Training/
-│   ├── dqn_training.py          # DQN training script (Experiments 1–5)
-│   └── ppo_training.py          # PPO training script (Experiments 1–4)
-├── dqn_models/
-│   ├── best_model.zip           # Best DQN agent (Exp 5 — see paper Table 3)
-│   └── dqn_final_model.zip
-├── ppo_models/
-│   ├── best_model.zip           # Best PPO agent (Exp 4 — inverted asymmetry)
-│   └── ppo_final_model.zip
-├── docs/
-│   ├── environment_preview.png  # Figure 1 of the paper
-│   └── Final_Report.pdf         # Full paper (Deep Learning Indaba submission)
-├── main.py                      # Visualisation / rollout entry point
-└── requirements.txt
-```
-
-## Custom Environment
-A 20×20 grid-world modelled as a Partially Observable Markov Decision
-Process (POMDP). The agent has no global map access and perceives the world
-through a compact state vector designed to be deployable on
-resource-constrained hardware such as a smart cane or wearable device.
-
-### Layout
-Four semantically distinct rooms connected by a central hallway:
-
-| Region       | Colour       |
-|--------------|--------------|
-| Living room  | Blue         |
-| Kitchen      | Yellow       |
-| Bedroom      | Green        |
-| Bathroom     | Purple       |
-| Hallway      | Gray         |
-| Doorways     | Orange       |
-| Furniture    | Brown        |
-| Appliances   | Violet-pink  |
-| Decorations  | Red          |
-| Floor items  | Black        |
-| Agent        | Green sphere |
-
-### Action Space
-Discrete, `A = {0, 1, 2, 3, 4}`:
-
-| Action | Meaning |
-|--------|---------|
-| 0      | Up      |
-| 1      | Down    |
-| 2      | Left    |
-| 3      | Right   |
-| 4      | Wait    |
-
-The `Wait` action is included to support future extensions to dynamic
-environments (e.g., pausing for a moving pedestrian).
-
-### Observation Space
-A 16-dimensional compressed state vector `s ∈ ℝ^16`, split into three
-semantically meaningful blocks:
-
-- **Proximity sensors (5 dims):** binary flags indicating obstacles or
-  doorways in the four cardinal neighbours and the current cell — a proxy
-  for a local LiDAR / ultrasonic array.
-- **Target information (4 dims):** one-hot encoding of the semantic target
-  room (kitchen / bedroom / bathroom / living room).
-- **Navigation state (7 dims):** normalised agent coordinates, Euclidean
-  distance to the target, normalised remaining time budget, and a one-hot
-  encoding of the current room type.
-
-This vector representation is substantially more sample-efficient than
-pixel observations and supports low-latency inference at deployment time.
-
-### Reward Structure
-The reward function balances **safety** against **path efficiency** by
-combining dense step-by-step shaping with sparse topological bonuses to
-address the credit-assignment problem in multi-room layouts:
-
-| Component                         | Value      | Notes                                       |
-|-----------------------------------|------------|---------------------------------------------|
-| Step penalty                      | `-0.1`     | Applied at every step (encourages shortest path) |
-| Collision penalty                 | `-5.0`     | **Terminates** the episode (strict risk aversion) |
-| Doorway bonus                     | `+1.0`     | On successful doorway traversal             |
-| Target completion bonus (dynamic) | `+15 + K·t_rem` | `t_rem` = steps remaining, `K` scaling constant |
-| Timeout penalty                   | `-3.0`     | Agent failed to reach the target in 150 steps |
-
-## Network Architectures
-### DQN
-Multi-Layer Perceptron approximating `Q*(s, a)`. The best configuration
-(Experiment 5 in the paper) uses a `[512, 256]` hidden-layer MLP with ReLU
-activations, ε-greedy exploration annealed from `1.0 → 0.02` over 15% of
-training, learning rate `3e-4`, γ=0.99, replay buffer of 100k transitions,
-and a batch size of 256. See Table 1 of the paper for all five DQN
-configurations.
-
-### PPO — Inverted Asymmetry
-The central architectural contribution. Rather than the conventional
-symmetric actor-critic or a larger-critic configuration, our best PPO
-agent (Experiment 4 in the paper) pairs a **deep policy network** with a
-**streamlined value network**:
-
-```
-Actor:   MLP(16 → 512 → 256 → 128 → 5)    # deep, LeakyReLU
-Critic:  MLP(16 →      256 → 128 → 1)     # streamlined
-```
-
-**Rationale.** In mapless grid navigation the policy landscape is sharp
-and discontinuous — a single-bit change in proximity sensing can require
-completely inverting the action distribution — whereas the value
-landscape is smooth and monotonic (geodesic distance to goal). The policy
-therefore requires higher representational capacity than the value
-function. Formally, `Lip(π) ≫ Lip(V)`. We call this **inverted
-asymmetry** and term the task **policy-hard, value-easy**.
-
-An incidental deployment benefit: the critic is discarded after training,
-so only the lightweight actor runs on the edge device — minimising memory
-footprint and battery usage.
-
-## Training
-Reproduce the paper's best configurations:
+**Regenerate all Phase-1 and Phase-2 aggregates and figures:**
 
 ```bash
-# DQN — reproduces Experiment 5 (best DQN)
-python -m Training.dqn_training
-
-# PPO — reproduces Experiment 4 (inverted asymmetry, best overall)
-python -m Training.ppo_training
+python Analysis/rliable_analysis.py
 ```
 
-Trained models are written to `dqn_models/` and `ppo_models/`
-respectively. Training notebooks (`Notebooks/*.ipynb`) include the
-reward-curve and loss-curve plots from Figures 2–5 of the paper.
+Reads from `results/csv/`, writes updated figures to `figures/`. Uses `BOOTSTRAP_SEED=20260817` (overridable via `ARCH_ABLATIONS_BOOTSTRAP_SEED`); every aggregate reported in the paper regenerates to the digit. Useful environment variables: `ARCH_ABLATIONS_CSV_DIR` (input directory), `ARCH_ABLATIONS_FIG_DIR` (figure output), `ARCH_ABLATIONS_REPS` (bootstrap resamples), and `ARCH_ABLATIONS_WRITE_FIGS=0` for a numbers-only pass that writes no figures.
 
-## Visualization
-Roll out a trained agent and save per-step frames to disk:
+**Regenerate the Phase-2 ladder figures:**
 
 ```bash
-# Visualise the PPO agent
-python main.py --model-path ./ppo_models/best_model.zip --model-type ppo
-
-# Visualise the DQN agent
-python main.py --model-path ./dqn_models/best_model.zip --model-type dqn
+python Analysis/plot_p2_ladder.py
 ```
 
-Useful flags: `--episodes N`, `--step-delay SECONDS`, `--no-frames` (skip
-per-step PNG saving), `--frames-dir PATH`. Run `python main.py --help`
-for the full list.
+**Re-run experiments from scratch** (Colab-friendly, GPU recommended):
 
-## Results
-**DQN Experimental Results** (Table 3 of the paper; SR = success rate,
-CR = collision rate):
+```bash
+python -m Training.run_sweep --output-dir <path>          # Phase 1
+python -m Training.run_phase2_sweep --output-dir <path>   # Phase 2 ladder
+python Analysis/positive_control.py run                   # MNIST positive control
+```
 
-| Exp | SR   | CR | Avg Steps | Avg Reward |
-|-----|------|----|-----------|------------|
-| 1   | 70%  | 0% | 106.9     | −5.2       |
-| 2   | 80%  | 0% | 69.6      | 12.8       |
-| 3   | 10%  | 0% | 147.2     | −18.5      |
-| 4   | 30%  | 0% | 89.3      | 3.1        |
-| **5** | **100%** | **0%** | **28.6** | **25.4** |
+Each cell writes per-seed CSVs and W&B logs. Runs are resumable via `.done` markers, so re-issuing the same command skips finished seeds and resumes partial ones from their latest checkpoint. Pass `--dry-run` to print the queue without launching, or `--only <config_id>` to run a single Phase-2 cell in isolation.
 
-**PPO Experimental Results** (Table 4 of the paper):
+## Pre-registrations
 
-| Exp | Avg Reward | Avg Steps | CR   | SR   |
-|-----|------------|-----------|------|------|
-| 1   | 41.0       | 14.8      | ≈5%  | ≈95% |
-| 2   | 22.7       | 55.5      | ≈2%  | ≈75% |
-| 3   | 40.9       | 13.9      | ≈5%  | ≈95% |
-| **4** (inverted asymmetry) | **41.1** | **14.3** | **≈3%** | **≈97%** |
+Both are frozen and were committed before any load-bearing run:
 
-**Best-Agent Comparison** (Table 5 of the paper):
+- [**`docs/PHASE2_POMDP_PREREGISTRATION.md`**](docs/PHASE2_POMDP_PREREGISTRATION.md) — the observability ladder, four mechanisms, per-outcome interpretation table, plus Amendments 1–4 documenting each extension.
+- [**`docs/POSITIVE_CONTROL_PREREGISTRATION.md`**](docs/POSITIVE_CONTROL_PREREGISTRATION.md) — MNIST CNN-vs-MLP dose-response, four frozen predictions (P1–P4).
 
-| Metric          | DQN (Exp 5) | PPO (Exp 4) | Analysis                               |
-|-----------------|-------------|-------------|----------------------------------------|
-| Avg. Steps      | 28.60       | 14.3        | PPO ≈2× faster; near-optimal pathing   |
-| Success Rate    | 100%        | ≈97%        | DQN never fails; the "safe" choice     |
-| Convergence     | ∼250 eps    | ∼20 eps     | PPO is 12.5× more sample-efficient     |
-| Loss Stability  | Oscillatory | Smooth      | PPO clipping prevents training collapse|
+One of those predictions (P3) turned out to be partially wrong. It is reported as a miss in the paper rather than quietly revised, which is the point of freezing them.
 
-The best PPO agent achieves an average reward of **41.1** and reduces path
-length by ≈50% relative to the best DQN agent. DQN however retains a
-**0% collision rate** with 100% success, making it the "safety-first"
-choice. The paper proposes a **hybrid architecture** — PPO as global
-planner with a DQN/PID-based local controller as safety layer — as the
-most promising path forward for deployable assistive navigation.
+## Reproducibility guarantee
 
-## Paper Reference
-The full paper, *"Policy-Hard, Value-Easy: Inverted Actor-Critic
-Asymmetry in Deep Reinforcement Learning Based Assistive Indoor
-Navigation,"* is available at
-[`docs/DLI.pdf`](docs/DLI.pdf). The paper's Appendix
-links back to this repository for reproducibility.
+Every numerical claim in the paper — every IQM, every 95% CI, every per-room success rate, every distinct-pattern count — regenerates from `results/csv/` under the seeded bootstrap. A 71-check numerical sweep confirmed this before final submission; see [`docs/results_log.md`](docs/results_log.md) for the audit trail, including a corrected per-room success rate that the sweep caught.
 
-Key findings summarised there:
+Evidence tiers are kept strictly separate and are labelled throughout: claim-grade multi-seed results (10 seeds, IQM with 95% stratified-bootstrap CIs, released per-seed data) versus single-seed learnability gates, which are design and calibration steps only and are never cited as results.
 
-- Inverted asymmetry (deep actor + shallow critic) is the superior PPO
-  architecture for sparse-reward spatial navigation — challenging the
-  standard heuristic favouring a larger critic.
-- Navigation in this setting is empirically a **policy-hard, value-easy**
-  problem: the Lipschitz constant of the optimal policy greatly exceeds
-  that of the optimal value function.
-- Doorway shaping rewards (`+1.0`) materially accelerate learning in
-  segmented multi-room layouts.
-- γ = 0.99 is the best discount factor for both DQN and PPO on this
-  domain.
+## Citation
+
+```bibtex
+@article{babalola2026testable,
+  title  = {Testable or Not? A Pre-Registered Validity Protocol for Architecture Comparisons},
+  author = {Babalola, Samuel and Odero, Anjeline Noel and Sumba, Branis Mabumba and Ogore, Marvin and Nsabiyumva, Simeon},
+  year   = {2026},
+  note   = {Under review at TMLR; preprint at arXiv:XXXX.XXXXX}
+}
+```
+
+(Update the arXiv ID once posted.)
 
 ## License
-Released under the [MIT License](LICENSE).
 
-## Contact
-**Samuel Oluwajunwonlo Babalola**
-📧 [s.babalola@alustudent.com](mailto:s.babalola@alustudent.com)
-Submission date: April 1, 2025
+MIT — see [`LICENSE`](LICENSE).
+
+## Acknowledgements
+
+We thank Eunice Adewusi for her contributions to the earlier unpublished version of this work, including the ethics review and writing of the ethics section.
