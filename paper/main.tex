@@ -38,7 +38,7 @@
 
 \graphicspath{{../figures/}{figures/}}
 
-\title{A construct-validity protocol for architecture comparisons in reinforcement learning}
+\title{Testable or Not? A Pre-Registered Validity Protocol for Architecture Comparisons}
 
 % ---------------------------------------------------------------------------
 % Author block: PREPRINT ONLY. Compiled out entirely for the blind build.
@@ -62,12 +62,12 @@
 \maketitle
 
 \begin{abstract}
-Empirical architecture comparisons carry an implicit assumption: that the benchmark can
-actually \emph{test} the hypothesis, that the task contains the structure the architecture
-is meant to exploit. When it does not, a null is uninformative and a single-seed positive
+Empirical architecture comparisons rest on an implicit assumption of testability: that the
+benchmark can actually arbitrate the hypothesis, because the task contains the structure the
+architecture is meant to exploit. When it does not, a null is uninformative and a single-seed positive
 is unfalsifiable noise. Yet both are routinely reported as evidence. We give a
-\textbf{pre-registered protocol for deciding whether a task can test an architecture
-hypothesis at all}, before trusting any comparison run on it: state the structural
+pre-registered protocol for deciding whether a task can test an architecture
+hypothesis at all, before trusting any comparison run on it: state the structural
 precondition the hypothesis requires; build a graded manipulation ladder that targets it;
 gate each rung for learnability with a single seed; promote only load-bearing rungs to
 multi-seed, claim-grade evaluation; and attribute any induced hardness to the precondition
@@ -84,8 +84,8 @@ distributions overlap. There is no resolvable PPO advantage, and the point estim
 anything favour DQN. A pre-registered observability ladder, four degradation mechanisms
 extended by dated amendment as each proved insufficient, then shows \emph{why} the
 asymmetry question cannot be settled here: no manipulation places the task in the regime
-the hypothesis needs. Every rung either \textbf{ceilings} (the optimal policy stays easy to
-represent), \textbf{fractures} into a give-up local optimum, or \textbf{fragments} across
+the hypothesis needs. Every rung either ceilings (the optimal policy stays easy to
+represent), fractures into a give-up local optimum, or fragments across
 seed-selected local optima, hard but not in the way the hypothesis specifies. We report
 this as a worked \emph{negative outcome of the protocol}, not as evidence against
 asymmetry: this task class cannot arbitrate the hypothesis, which may still hold on a task
@@ -251,12 +251,12 @@ setting long recognised as hard for value-based and policy-gradient methods alik
 uninformative early experience gives the learner almost no gradient to follow
 \citep{andrychowicz2017her}. We train the two architectures, symmetric and inverted, with
 otherwise identical PPO \citep{schulman2017ppo} hyperparameters (verbatim from those earlier
-experiments' configurations) for a fixed 200k-step budget, at \textbf{10 seeds each}, and
+experiments' configurations) for a fixed 200k-step budget, at 10 seeds each, and
 aggregate with rliable. Two aggregation conventions hold throughout the paper. A
 configuration's return is the IQM across seeds of each seed's mean eval return, with a 95\%
 stratified-bootstrap CI; the bootstrap is seeded, so every interval reported here regenerates
-exactly from the released per-seed data. \textbf{Per-room success-rate aggregates are
-computed as the mean across seeds of each seed's own SR fraction}, a seed-mean rather than a
+exactly from the released per-seed data. Per-room success-rate aggregates are
+computed as the mean across seeds of each seed's own SR fraction, a seed-mean rather than a
 pooled per-episode rate. Because eval target rooms are sampled rather than balanced, seeds
 carry unequal per-room episode counts, and the seed-mean keeps every aggregate
 arithmetically consistent with the per-seed tables: averaging a per-seed column reproduces
@@ -305,7 +305,7 @@ DQN (value-based; comparator) & Exp 1 & Q [256,256] & slow $\epsilon$-decay \\
 
 \paragraph{Result 1: the asymmetry advantage does not survive multiple seeds.} Under 10-seed
 evaluation the two architectures are statistically indistinguishable: IQM eval return
-\textbf{27.56} (inverted) versus \textbf{27.66} (symmetric), with overlapping 95\%
+27.56 (inverted) versus 27.66 (symmetric), with overlapping 95\%
 confidence intervals and a probability of improvement $P(\text{inverted} >
 \text{symmetric}) = \mathbf{0.25}$. The inverted configuration is, if anything, \emph{less}
 likely to beat the symmetric one on a random seed. The single-seed advantage was seed noise;
@@ -388,7 +388,7 @@ distance-to-target; the reward is monotone in path length. The optimal policy is
 close to ``take the action that most reduces distance-to-target'', a smooth, low-complexity
 function that a shallow network represents as well as a deep one. The theory under test
 (``policy-hard, value-easy'': actor depth helps only when the optimal \emph{policy} is a
-genuinely hard function while the \emph{value} stays smooth) predicts \textbf{no} benefit
+genuinely hard function while the \emph{value} stays smooth) predicts no benefit
 from actor depth precisely when the policy is easy. On this observation the precondition for
 the hypothesis is unmet \emph{by construction}, so a null is exactly what the theory
 predicts, and tells us nothing about the hypothesis itself. What it raises instead is a
@@ -397,37 +397,37 @@ sharper question: can this task test the hypothesis at all, under any observatio
 \section{Phase 2: a pre-registered observability ladder shows the task cannot test H1}
 \label{sec:phase2}
 
-Can \textbf{any} degradation of the observation put the task into the regime the hypothesis
+Can any degradation of the observation put the task into the regime the hypothesis
 needs, a policy that is genuinely hard to represent while the value function stays smooth,
-without simply making the task unlearnable? We answer this with a \textbf{pre-registered}
+without simply making the task unlearnable? We answer this with a pre-registered
 experiment (the design, hypotheses, falsification criteria, and per-outcome interpretations
 were frozen before any run; the dated amendment trail records every subsequent design
 decision). The independent variable is a \emph{ladder} of observation wrappers over the
 frozen environment, monotone in ``policy-relevant information removed''; the primary
 endpoint is the inverted$-$symmetric IQM gap. Because a floor effect (task simply
 unlearnable) would masquerade as the target regime, each rung is first
-\textbf{single-seed-gated for learnability} (cheap) before any load-bearing cell is promoted
+single-seed-gated for learnability (cheap) before any load-bearing cell is promoted
 to 10 seeds (rliable). This section reports the claim-grade cells; the single-seed gates and
 the difficulty model are design and calibration steps, never cited as results.
 
 \paragraph{Four degradation mechanisms.} Guided by the POMDP-difficulty literature (static
 feature removal is often insufficient; temporal hidden state is what makes policies hard
-\citep{hausknecht2015drqn,morad2023popgym}), we test, over the frozen env: (i) \textbf{pure
+\citep{hausknecht2015drqn,morad2023popgym}), we test, over the frozen env: (i) \emph{pure
 removal}, dropping global position (A-MILD, 14-D) and additionally distance-to-target
-(A-STRICT, 13-D); (ii) \textbf{flicker $+$ frame-stack}, where each step the frame is fully
+(A-STRICT, 13-D); (ii) \emph{flicker $+$ frame-stack}, where each step the frame is fully
 masked with probability $p$, then the last $k=4$ frames are stacked (52-D); (iii)
-\textbf{targeted aliasing}, dropping the region one-hot so room/hallway/doorway cells are
-indistinguishable from a single frame (10-D); (iv) \textbf{proximity noise}, flipping each
+\emph{targeted aliasing}, dropping the region one-hot so room/hallway/doorway cells are
+indistinguishable from a single frame (10-D); (iv) \emph{proximity noise}, flipping each
 binary proximity bit with probability $q=0.3$ (13-D), degrading state-identification while
 leaving walls mostly avoidable.
 
 \paragraph{A calibration aside (why flicker rate is not the difficulty knob).} A ground-truth
 BFS on the map gives optimal path lengths $H = \{\text{kitchen } 11, \text{bedroom } 11,
 \text{bathroom } 22\}$, and an exact consecutive-mask survival model predicts blackout
-probability rising with $H$. The observed per-room difficulty \textbf{contradicts} this:
+probability rising with $H$. The observed per-room difficulty contradicts this:
 under flicker the two equidistant rooms diverge sharply (at $p=0.8$, kitchen is abandoned
-while bedroom is solved), so difficulty is \textbf{geometry/approach-dependent, not
-distance-dependent}, and no single flicker rate places all rooms in a partial band. This
+while bedroom is solved), so difficulty is geometry/approach-dependent, not
+distance-dependent, and no single flicker rate places all rooms in a partial band. This
 directed the aliasing rung and is reported as calibration, not as a result
 (Figures~\ref{fig:blackout}--\ref{fig:obspred}).
 
@@ -456,7 +456,7 @@ fractures, or fragments across seed-selected local optima; none is hard-but-lear
 
 \begin{table}[t]
 \centering
-\caption{Phase 2 claim-grade ladder cells: symmetric PPO, \textbf{10 seeds per cell},
+\caption{Phase 2 claim-grade ladder cells: symmetric PPO, 10 seeds per cell,
 rliable IQM $+$ 95\% CI; per-room SR is the seed-mean defined in the Setup above. Every row
 is claim-grade multi-seed data; the single-seed learnability gates that preceded them are
 calibration and appear nowhere in this table. ``Patterns'' counts the distinct per-seed
@@ -517,7 +517,7 @@ We report both budgets in Table~\ref{tab:ladder} rather than replacing the 200k 
 because their combination is what carries the argument. The 200k data alone would have
 supported the description ``systematic near/far give-up'', a description the 500k data does
 not survive. What the two together support is a stronger claim: $p=0.8$ flicker places the
-task in a regime of \textbf{landscape fragmentation}, in which multiple locally-optimal
+task in a regime of \emph{landscape fragmentation}, in which multiple locally-optimal
 \emph{reactive} policies partition the reachable outcome space by room, and seed selection
 determines which one a given run finds. The 200k pattern was one manifestation of that
 landscape, the one visible while training is short enough that most seeds have not left
@@ -538,7 +538,7 @@ property peculiar to one cell.
 the pre-registered set of single-map observation degradations (the pre-registration caps the
 ladder at these four mechanisms on the fixed $20\times20$ map; any further degradation is
 deemed a different task under a separate Phase-3 pre-registration), no rung meets the
-precondition. On this task, the H1 asymmetry hypothesis is \textbf{untestable}: the Phase 1
+precondition. On this task, the H1 asymmetry hypothesis is untestable: the Phase 1
 null is a fact about the task, not (on this evidence) about the hypothesis. This has a direct
 consequence for the pre-registered primary endpoint. That endpoint, the
 inverted$-$symmetric IQM gap, is defined only on a rung that passes the step-5
@@ -551,7 +551,7 @@ meant anything.
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\linewidth]{p2_flicker08_perseed.png}
-\caption{The $p=0.8$ fracture \textbf{at the 200k budget}, per seed. Left: outcome split
+\caption{The $p=0.8$ fracture at the 200k budget, per seed. Left: outcome split
 (success / timeout / collision), showing failures are timeouts not collisions. Right:
 per-room success-rate heatmap across the 10 seeds, kitchen abandoned 10/10 and bedroom
 solved 10/10. The corresponding 500k per-seed outcomes are in Appendix~\ref{app:perseed}.}
@@ -568,7 +568,7 @@ of the problem''}: inverted actor--critic asymmetry suits a hard-to-represent po
 convolution suits spatial locality; attention suits long-range dependency; extra depth suits
 compositional structure. Such a hypothesis can only be tested on a task that actually
 \emph{contains} $S$. If the chosen benchmark lacks $S$, then $A$ has nothing to act on and
-the hypothesis predicts \textbf{no} effect \emph{by construction}, so a null result is
+the hypothesis predicts no effect \emph{by construction}, so a null result is
 uninformative and, just as dangerously, a positive result on one seed is unfalsifiable
 noise. Before claiming a task confirms or refutes such a hypothesis, one should check that
 the task is \emph{able} to test it. We distil our study into a reusable procedure for that
@@ -599,15 +599,15 @@ structure $S$'':}
    archival-grade, the full pre-registered seed count with confidence intervals, before
    publication.
 \item \textbf{Read the ladder, and attribute the hardness.} If some rung is
-   \textbf{hard-but-learnable}, baseline sub-ceiling but improving, do not stop at ``it's
+   \emph{hard-but-learnable}, baseline sub-ceiling but improving, do not stop at ``it's
    hard.'' Verify the hardness is attributable to $S$ \emph{specifically}, and not to a
    confounding difficulty source (an optimisation pathology such as a give-up local optimum,
    or raw sensory deprivation that starves the agent rather than complicating the policy). A
    rung can be hard the \emph{wrong} way: if it is, an architecture gap measured there
    reflects ``which architecture escapes the pathology more often,'' not ``$A$ suits $S$,''
    and the comparison silently tests the wrong thing. Only once the hardness is
-   $S$-attributable does the rung qualify; then run the architecture comparison \textbf{on
-   that rung}. If \textbf{no} rung reaches the precondition in a learnable,
+   $S$-attributable does the rung qualify; then run the architecture comparison on
+   that rung. If no rung reaches the precondition in a learnable,
    $S$-attributable regime, the task \emph{cannot} test the hypothesis. Report that, with
    the mechanism that explains why the manipulation never induced $S$.
 \end{enumerate}
@@ -649,14 +649,14 @@ return.
 \label{sec:poscontrol}
 
 A procedure that has so far returned only its negative branch invites a fair objection: is it
-a detector, or merely a rejection stamp? To show it also returns \textbf{yes}, we run it as a
-\textbf{positive control} on a task where the precondition can be inserted and removed at
+a detector, or merely a rejection stamp? To show it also returns \emph{yes}, we run it as a
+\emph{positive control} on a task where the precondition can be inserted and removed at
 will, recovering a \emph{known-true} effect rather than asserting a new one: $A = $
 convolution, $S = $ spatial locality. The ladder is a single fixed permutation of the MNIST
 pixels applied to a fraction $q \in \{0, 0.25, 0.5, 0.75, 1.0\}$ of positions (nested
-subsets, a derangement within each, identity elsewhere). Every rung is a \textbf{bijection}
-on pixel positions, a fixed relabeling of the input units, so \textbf{information is provably
-preserved} (the classes remain perfectly separable); what is progressively destroyed as $q
+subsets, a derangement within each, identity elsewhere). Every rung is a \emph{bijection}
+on pixel positions, a fixed relabeling of the input units, so information is provably
+preserved (the classes remain perfectly separable); what is progressively destroyed as $q
 \to 1$ is only spatial locality. We compare a small CNN against a parameter-matched MLP
 (105.9k parameters each), 10 seeds, everything else held fixed, at a sub-asymptotic budget
 where the convolutional advantage is widest. Design, predictions, and interpretation table
@@ -695,10 +695,10 @@ identical, since the learning problem is unchanged up to a relabeling of input u
 MLP hypothesis class is closed under that relabeling; \textbf{P3}, the gap is large at $q=0$
 and closes to ${\approx}0$ at $q=1$; \textbf{P4}, the protocol therefore reports the task
 \emph{can} test $A$-suits-$S$ at $q=0$ and \emph{cannot} at $q=1$. P1 held (CNN IQM $97.98
-\to 93.18$, monotone). P4 held: at $q=0$ the CNN leads by \textbf{$+2.15$ points with
-disjoint 95\% CIs}, a resolvable effect, while at $q=1$ there is no positive gap to find.
+\to 93.18$, monotone). P4 held: at $q=0$ the CNN leads by $+2.15$ points with
+disjoint 95\% CIs, a resolvable effect, while at $q=1$ there is no positive gap to find.
 
-\textbf{P3 was partially wrong, in an informative direction, and we report it as such.} The
+P3 was partially wrong, in an informative direction, and we report it as such. The
 gap does shrink monotonically, but at $q=1$ it does not settle at zero. It crosses to
 $-2.52$, the CNN landing \emph{below} the MLP with disjoint CIs. We had frozen
 ``${\approx}0$''; the data say the convolutional prior is not merely uninformative on
@@ -710,7 +710,7 @@ pre-registered. The paper asks that discipline of the work it examines, and owes
 itself.
 
 The MLP curve is what licenses attributing the CNN's decline to $S$ specifically. Because
-each rung is a bijection, the MLP's \textbf{0.13-point} drift from $q=0$ to $q=1$ is
+each rung is a bijection, the MLP's 0.13-point drift from $q=0$ to $q=1$ is
 optimization noise, not information loss: the task did not get \emph{harder}, only locality
 was removed, so the CNN's fall can only be the loss of the structure convolution exploits.
 (Flatness is judged by a pre-committed absolute threshold, $|\Delta| < 1.0$ point, which
@@ -720,16 +720,16 @@ by 0.02 points. This is an artifact of precision, not a real shift: with 10 seed
 interval is only ${\pm}0.1$ point wide, so a change far smaller than any practical
 significance still falls outside it. We pre-committed the absolute threshold precisely
 because CI-overlap is not a sound flatness criterion at that resolution, pre-registration
-working as intended.) This is the step-5 $S$-attribution guard \textbf{succeeding}, the
+working as intended.) This is the step-5 $S$-attribution guard \emph{succeeding}, the
 complement of the navigation $p=0.8$ fracture, where the same guard \emph{disqualified} a
 rung that had become hard the wrong way.
 
 None of this is about convolutions. What it establishes is that the protocol tracks the
-effect \textbf{appearing and vanishing with $S$}: run one rung over, at $q=0$, and it
+effect appearing and vanishing with $S$: run one rung over, at $q=0$, and it
 recovers the CNN advantage in full; run at $q=1$, and it correctly reports there is nothing
 to find. Where $S$ can be dialed in, the protocol says \emph{yes}; on the navigation task, no
-manipulation could dial $S$ in at all, and it says \emph{no}. \textbf{The instrument works;
-the benchmark doesn't.}
+manipulation could dial $S$ in at all, and it says \emph{no}. The instrument works;
+the benchmark doesn't.
 
 \begin{quote}
 A researcher who evaluated only the fully-scrambled task, who trained a CNN and an MLP on
@@ -857,8 +857,8 @@ paper does not answer and does not prejudge.
 \section{Discussion}
 \label{sec:discussion}
 
-The transferable lesson is a discipline, not a result: \textbf{before claiming a task confirms
-or refutes an architecture hypothesis, test whether the task is able to falsify it.} A cheap,
+The transferable lesson is a discipline, not a result: before claiming a task confirms
+or refutes an architecture hypothesis, test whether the task is able to falsify it. A cheap,
 pre-registered manipulation ladder with single-seed learnability gates makes this check
 affordable, and its outcome, which rung (if any) is hard-but-learnable, tells you where or
 whether to spend a claim-grade comparison. Pre-registration is doing real work here: it
@@ -868,11 +868,11 @@ procedure whose negative outcomes are as informative as its positive ones. In th
 benchmark measure what we take it to? --- as a prospective, pass/fail experiment run
 \emph{before} a comparison rather than a retrospective critique delivered after the fact.
 
-The scope of our negative result is narrow by design. We have shown that \textbf{this task,
+The scope of our negative result is narrow by design. We have shown that this task,
 and by the mechanism of \S\ref{sec:why} static single-map gridworld navigation with a
-redundant, low-dimensional observation, cannot test the inverted-asymmetry hypothesis},
+redundant, low-dimensional observation, cannot test the inverted-asymmetry hypothesis,
 because no degradation of its observation places the precondition in a learnable regime. We
-have \textbf{not} shown that inverted actor--critic asymmetry fails to help in reinforcement
+have \emph{not} shown that inverted actor--critic asymmetry fails to help in reinforcement
 learning generally; the hypothesis may well hold on a task of the kind specified above, and
 nothing here bears on that. The contribution is precisely scoped on purpose: a rigorous
 demonstration that a specific, widely-used \emph{style} of task cannot test a specific
@@ -887,8 +887,8 @@ precondition can be inserted and removed at will, the same procedure returns a c
 effect as it appears and vanishes: the positive branch, demonstrated. The remaining
 limitation is specific and we state it plainly. That positive instantiation is on image
 classification, not on reinforcement learning. We have exhibited the protocol's positive
-branch (on vision) and its negative branch (on RL navigation), but \textbf{not a substantive
-positive instantiation on an RL task}, one of the kind specified above, where the asymmetry
+branch (on vision) and its negative branch (on RL navigation), but not a substantive
+positive instantiation on an RL task, one of the kind specified above, where the asymmetry
 precondition is present in a learnable regime and the architecture comparison can actually
 run. Constructing that task and testing inverted asymmetry where it \emph{can} be tested is
 the natural next step; the specification above is written to make it buildable.
