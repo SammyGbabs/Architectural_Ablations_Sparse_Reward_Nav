@@ -48,7 +48,7 @@
 \author{%
   Samuel Babalola\textsuperscript{1,2,3,*},
   Anjeline Noel Odero\textsuperscript{1,2,\dag},
-  Sumba Mabumba Branis\textsuperscript{1,2,\dag},\\[0.35ex]
+  Branis Mabumba Sumba\textsuperscript{1,2,\dag},\\[0.35ex]
   Marvin Ogore\textsuperscript{1,2},
   Simeon Nsabiyumva\textsuperscript{1}\\[1.0ex]
   {\normalfont\small
@@ -133,7 +133,10 @@ is uninformative and any single-seed win is noise dressed as evidence. Nothing i
 standard train-and-evaluate loop flags this. The task fails to pose the question, and the
 experiment answers a different one, both without any visible symptom.
 
-We arrived at this through a concrete claim of our own. In earlier, unpublished experiments
+We arrived at this through a concrete claim of our own.\ifdefined\ispreprint\footnote{This work re-examines an earlier
+unpublished paper by a subset of the current authors. All results and interpretations
+reported here are our own; the earlier work is referenced as historical context.}\fi{}
+In earlier, unpublished experiments
 of ours, an inverted actor--critic asymmetry, a policy network deeper than its value
 network ($\pi=[512,256,128]$ vs $v=[256,128]$), appeared to outperform a symmetric baseline
 at matched budget on a sparse-reward indoor-navigation task, on a single seed, together
