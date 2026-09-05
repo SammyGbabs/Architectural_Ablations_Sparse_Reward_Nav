@@ -32,9 +32,11 @@ The more useful finding is *why* the first null is uninformative: the task never
 
 ## Reproducing the paper
 
-**Prerequisites.** Python 3.10+. Install with:
+**Prerequisites.** Python 3.10+. Clone and install with:
 
 ```bash
+git clone https://github.com/SammyGbabs/Pre-Registered-Validity-Protocol-for-Architecture-Comparisons.git
+cd Pre-Registered-Validity-Protocol-for-Architecture-Comparisons
 pip install -r requirements.txt
 ```
 
